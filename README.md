@@ -43,8 +43,7 @@ Then, depending on the response type, you can get:
 
 	final Bitmap bitmap = response.getBitmap();
 
-* a structured response (JSON or XML) using
-
+* a structured response (JSON or XML) using:
 
 	final DataNode rootNode = response.getDataNode();
 	if (rootNode != null) {
