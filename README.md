@@ -8,8 +8,7 @@ This library encapsulates most server requests: image downloads, JSON or XML req
 
 Usage
 -----
-You start with the Downloader
-
+You start with the Downloader. This is an example of how to use it. Remember that it inherits from AsyncTask, so you have to re-instantiate it once it has finished doing its previous job.
 
 	public class MyDownloader {
 
@@ -32,3 +31,22 @@ You start with the Downloader
 			}
 		}
 	}
+	
+The UrlAddress makes it possible to have a set of url strings to try subsequently if the server returns an error on a given one. First, it will try "http://www.uber.com", then "http://www.uberawesome.com", and finally "http://www.ubercool.fr", and loop back. If you don't want any rotations, add only one url string to it, that's fine. There is a constructor for that:
+
+	final UrlAddress urlAddress = new UrlAddress("http://www.petitourson.com");
+	
+
+Then, depending on the response type, you can get:
+
+* a bitmap
+
+* a structured response (JSON or XML)
+
+* a raw string
+
+
+
+	
+
+

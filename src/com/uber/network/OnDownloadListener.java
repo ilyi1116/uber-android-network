@@ -25,12 +25,31 @@ package com.uber.network;
 
 public interface OnDownloadListener {
 	
+	/**
+	 * Called before starting the download. You might want to show a loading dialog 
+	 * here for example.
+	 * @param type the type of the request
+	 */
 	public void onPreLoad(int type);
 	
+	/**
+	 * Called when the download succesfully finished. You can browse a structured 
+	 * response (eg. JSON or XML) using response.getDataNode(), get a raw string using
+	 * response.getDataString(), or get an image using response.getBitmap().
+	 * @param response the response object
+	 */
 	public void onLoad(Response response);
 	
+	/**
+	 * Called if the download could not connect to the server, got an error code from
+	 * the server, or could not parse the response.
+	 * @param type the type of the request
+	 */
 	public void onError(int type);
 	
+	/**
+	 * Called if the download was cancelled.
+	 */
 	public void onCancel();
 
 }
