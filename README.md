@@ -39,11 +39,11 @@ The UrlAddress makes it possible to have a set of url strings to try subsequentl
 
 Then, depending on the response type, you can get:
 
-* a bitmap using:
+1) a bitmap using:
 
 	final Bitmap bitmap = response.getBitmap();
 
-* a structured response (JSON or XML) using:
+2) a structured response (JSON or XML) using:
 
 	final DataNode rootNode = response.getDataNode();
 	if (rootNode != null) {
@@ -54,7 +54,7 @@ Then, depending on the response type, you can get:
 		}
 	}
 
-* a raw string using:
+3)  a raw string using:
 
 	final String rawResponse = response.getStringData();
 
