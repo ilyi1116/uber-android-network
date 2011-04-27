@@ -39,14 +39,26 @@ The UrlAddress makes it possible to have a set of url strings to try subsequentl
 
 Then, depending on the response type, you can get:
 
-* a bitmap
+* a bitmap using:
 
-* a structured response (JSON or XML)
+	final Bitmap bitmap = response.getBitmap();
 
-* a raw string
+* a structured response (JSON or XML) using:
+
+	final DataNode rootNode = response.getDataNode();
+	if (rootNode != null) {
+		final DataNode usernameNode = rootNode.findNode("user_name");
+		if (usernameNode != null) {
+			final String username = usernameNode.getString("default_name");
+			// DO SOMETHING!!!
+		}
+	}
+
+* a raw string using:
+
+	final String rawResponse = response.getStringData();
 
 
 
-	
 
 
