@@ -13,7 +13,7 @@ You start with the Downloader
 
     public class MyDownloader {
 
-            private OnDownloadListener mDownloadListener;
+        private OnDownloadListener mDownloadListener;
 
 	    public void setOnDownloadListener(OnDownloadListener listener) {
 	            mDownloadListener = listener;
