@@ -16,7 +16,7 @@ You start with the Downloader
         private OnDownloadListener mDownloadListener;
 
 	    public void setOnDownloadListener(OnDownloadListener listener) {
-	            mDownloadListener = listener;
+                    mDownloadListener = listener;
 		    if (mDownloader != null) {
 			    mDownloader.setOnDownloadListener(listener);
 		    }
