@@ -11,24 +11,24 @@ Usage
 You start with the Downloader
 
 
-    public class MyDownloader {
+	public class MyDownloader {
 
-        private OnDownloadListener mDownloadListener;
+		private OnDownloadListener mDownloadListener;
 
-	    public void setOnDownloadListener(OnDownloadListener listener) {
-                    mDownloadListener = listener;
-		    if (mDownloader != null) {
+		public void setOnDownloadListener(OnDownloadListener listener) {
+			mDownloadListener = listener;
+			if (mDownloader != null) {
 			    mDownloader.setOnDownloadListener(listener);
-		    }
-	    }
+			}
+		}
 
-	    public synchronized void send(UrlAddress urlAddress, String path, String postRequest, String contentType, int type, int responseType) {
-	            if (mDownloadListener != null) {
-			    if (mDownloader == null || mDownloader.getStatus() == AsyncTask.Status.FINISHED) {
-				    mDownloader = new Downloader();
-				    mDownloader.setOnDownloadListener(mDownloadListener);
-			    }
-			    mDownloader.addPost(urlAddress, path, postRequest, contentType, type, responseType);
-		    }
-	     }
-     }
+		public synchronized void send(UrlAddress urlAddress, String path, String postRequest, String contentType, int type, int responseType) {
+			if (mDownloadListener != null) {
+				if (mDownloader == null || mDownloader.getStatus() == AsyncTask.Status.FINISHED) {
+					mDownloader = new Downloader();
+					mDownloader.setOnDownloadListener(mDownloadListener);
+				}
+				mDownloader.addPost(urlAddress, path, postRequest, contentType, type, responseType);
+			}
+		}
+	}

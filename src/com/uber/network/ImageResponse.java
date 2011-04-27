@@ -38,7 +38,7 @@ public class ImageResponse extends Response {
         try {
         	BufferedInputStream bis = new BufferedInputStream(data); 
     		mBitmap = BitmapFactory.decodeStream(bis); 
-			bis.close();
+    		bis.close();
 		} catch (IOException e) {
 			throw new ResponseException();
 		} 
