@@ -12,7 +12,7 @@ You start with the Downloader. This is an example of how to use it. Remember tha
 
 	public class MyDownloader {
                  
-                private Downloader mDownloader;
+		private Downloader mDownloader;
 		private OnDownloadListener mDownloadListener;
 
 		public void setOnDownloadListener(OnDownloadListener listener) {
