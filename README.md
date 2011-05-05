@@ -11,7 +11,8 @@ Usage
 You start with the Downloader. This is an example of how to use it. Remember that it inherits from AsyncTask, so you have to re-instantiate it once it has finished doing its previous job.
 
 	public class MyDownloader {
-
+                 
+                private Downloader mDownloader;
 		private OnDownloadListener mDownloadListener;
 
 		public void setOnDownloadListener(OnDownloadListener listener) {
