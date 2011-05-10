@@ -28,6 +28,8 @@ import java.util.ArrayList;
 public class UrlAddress {
 	
 	private ArrayList<String> mAddresses = new ArrayList<String>();
+	public ArrayList<Integer> mRotationCodes = new ArrayList<Integer>();
+	
 	
 	public UrlAddress() {
 	}
@@ -74,6 +76,19 @@ public class UrlAddress {
 	public void rotateAddress() {
 		if (mAddresses.size() > 0) {
 			mAddresses.add(mAddresses.remove(0));
+		}
+	}
+
+	public void setRotationCodes(ArrayList<Integer> rotationCodes) {
+		mRotationCodes = rotationCodes;
+	}
+
+	public boolean shouldRotateWithCode(int responseCode) {
+		if(mRotationCodes != null){
+			return mRotationCodes.contains(responseCode);
+		}
+		else{
+			return false;
 		}
 	}
 	

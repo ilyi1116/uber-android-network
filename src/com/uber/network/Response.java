@@ -39,6 +39,7 @@ public class Response {
 	private int mRequestType = -1;
 	private String mStringData;
 	private long mLastModified;
+	private int mResponseCode = -1;
 	
 	public static Response create(int requestType, InputStream data, long lastModified, int responseType) throws ResponseException {
 		Response response = null;
@@ -119,6 +120,14 @@ public class Response {
 			stringBuilder.append(buffer, 0, read);
 		}
 		return stringBuilder.toString();
+	}
+
+	public void setResponseCode(int responseCode) {
+		mResponseCode = responseCode;
+	}
+	
+	public int getResponseCode() {
+		return mResponseCode;
 	}
 	
 }
