@@ -291,5 +291,7 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 		String contentType;
 		int reponseType;
 		int type;
+		int attempts;
+		int sshAttempts;
 	}
 }
