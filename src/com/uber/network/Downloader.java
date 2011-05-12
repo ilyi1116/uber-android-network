@@ -52,6 +52,21 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 	private OnDownloadListener mDownloadListener = null;
 	private final Vector<Request> mRequestQueue = new Vector<Request>();
 
+	public static String toQueryString(HashMap<String, String> params) {
+		final Object[] keys = params.keySet().toArray();
+		String paramsPath = "";
+		final int size = keys.length;
+		for (int i = 0; i < size; ++i) {
+			final String key = (String)keys[i];
+			paramsPath += key + "=" + params.get(key);
+			if (i < (size - 1)) {
+				paramsPath += "&";
+			}
+			i++;
+		}
+		return paramsPath;
+	}
+
 	public void setOnDownloadListener(OnDownloadListener listener) {
 		mDownloadListener = listener;
 	}
@@ -67,22 +82,13 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 	}
 
 	public void addGet(UrlAddress urlAddress, HashMap<String, String> params, int type, int responseType) {
+		addGet(urlAddress,toQueryString(params),type,responseType);
+	}
+	
+	public void addGet(UrlAddress urlAddress, String path, int type, int responseType) {
 		final Request request = new Request();
-		final Set<String> keys = params.keySet();
-		String paramsPath = "";
-		int i = 0;
-		for (String key : keys) {
-			if (i == 0) {
-				paramsPath += "?";
-			}
-			paramsPath += key + "=" + params.get(key);
-			if (i < (keys.size() - 1)) {
-				paramsPath += "&";
-			}
-			i++;
-		}
 		request.urlAddress = urlAddress;
-		request.path = paramsPath;
+		request.path = path;
 		request.requestMethod = "GET";
 		request.type = type;
 		request.reponseType = responseType;
@@ -213,7 +219,6 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 
 					if (responseCode == -1) {
 						// Network error.
-						request.urlAddress.rotateAddress();
 						if (attempt == 0) {
 							if (mIsConnected) {
 								publishProgress(ERROR, request.type);
@@ -222,16 +227,17 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 						}
 					} else {
 						// Network is OK.
-						if (request.urlAddress.shouldRotateWithCode(responseCode)) {
-							// Server internal error.
+						if (request.urlAddress.shouldRotateWithCode(responseCode) && attempt != 0) {
+							// Server internal error & not finished attempts.
 							request.urlAddress.rotateAddress();
+						} else {
+							final Response response = Response.create(request.type, responseInputStream, lastModified, request.reponseType);
+							response.setResponseCode(responseCode);
+							responseInputStream.close();
+							shouldRemove = true;
+							publishProgress(DONE, response);
+							mIsConnected = true;
 						}
-						final Response response = Response.create(request.type, responseInputStream, lastModified, request.reponseType);
-						response.setResponseCode(responseCode);
-						responseInputStream.close();
-						shouldRemove = true;
-						publishProgress(DONE, response);
-						mIsConnected = true;
 					}
 
 				} catch (Exception e) {
@@ -286,5 +292,4 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 		int reponseType;
 		int type;
 	}
-
 }
