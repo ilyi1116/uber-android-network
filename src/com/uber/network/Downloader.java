@@ -26,9 +26,9 @@ package com.uber.network;
 import java.io.DataOutputStream;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.HashMap;
-import java.util.Set;
 import java.util.Vector;
 
 import javax.net.ssl.HttpsURLConnection;
@@ -43,8 +43,6 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 	private static final int PRE_LOAD = 1;
 	private static final int ERROR = 2;
 
-	private static final int CONNECTION_ATTEMPTS = 3;
-
 	private final int TIMEOUT_CONNECTION = 5000;
 
 	private boolean mIsConnected = true;
@@ -57,57 +55,26 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 	}
 
 	public void addDownload(UrlAddress urlAddress, int type, int responseType) {
-		final Request request = new Request();
-		request.urlAddress = urlAddress;
-		request.path = "";
-		request.requestMethod = "GET";
-		request.type = type;
-		request.reponseType = responseType;
+		final Request request = new Request(urlAddress, "", "GET", null, null, responseType, type);
 		addDownload(request);
 	}
 
 	public void addGet(UrlAddress urlAddress, HashMap<String, String> params, int type, int responseType) {
-		final Request request = new Request();
-		final Set<String> keys = params.keySet();
-		String paramsPath = "";
-		int i = 0;
-		for (String key : keys) {
-			if (i == 0) {
-				paramsPath += "?";
-			}
-			paramsPath += key + "=" + params.get(key);
-			if (i < (keys.size() - 1)) {
-				paramsPath += "&";
-			}
-			i++;
-		}
-		request.urlAddress = urlAddress;
-		request.path = paramsPath;
-		request.requestMethod = "GET";
-		request.type = type;
-		request.reponseType = responseType;
+		addGet(urlAddress, toQueryString(params), type, responseType);
+	}
+	
+	public void addGet(UrlAddress urlAddress, String path, int type, int responseType) {
+		final Request request = new Request(urlAddress, path, "GET", null, null, responseType, type);
 		addDownload(request);
 	}
 
 	public void addHead(UrlAddress urlAddress, int type, int responseType) {
-		final Request request = new Request();
-		request.urlAddress = urlAddress;
-		request.path = "";
-		request.requestMethod = "HEAD";
-		request.type = type;
-		request.reponseType = responseType;
+		final Request request = new Request(urlAddress, "", "HEAD", null, null, responseType, type);
 		addDownload(request);
 	}
 
 	public void addPost(UrlAddress urlAddress, String path, String postRequest, String contentType, int type, int responseType) {
-		final Request request = new Request();
-		request.urlAddress = urlAddress;
-		request.path = path;
-		request.requestMethod = "POST";
-		request.body = postRequest;
-		request.contentType = contentType;
-		request.type = type;
-		request.reponseType = responseType;
+		final Request request = new Request(urlAddress, path, "POST", postRequest, contentType, responseType, type);
 		addDownload(request);
 	}
 
@@ -130,18 +97,60 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 			// Pretty fucked here
 		}
 	}
+	
+	/**
+	 * This is a *smart* helper method which, given a request,
+	 * manages to create the right kind of http connection.
+	 * @param request
+	 * @return the connection object
+	 */
+	private HttpURLConnection connect(Request request) {
+		HttpURLConnection connection = null;
+		try {
+			final URL url = new URL(request.urlAddress.getAddress() + request.path);
+			final String protocol = url.getProtocol();
+			if (protocol.equals("http")) {
+				connection = (HttpURLConnection) url.openConnection();
+			} else if (protocol.equals("https")) {
+				trustCertificate();
+				final HttpsURLConnection sslConnection = (HttpsURLConnection) url.openConnection();
+				sslConnection.setHostnameVerifier(new UberHostnameVerifier());
+				connection = sslConnection;
+				// WTF: a bug in android forces us to try connecting twice in a row
+				// for Https connections.
+				request.attemptCount = 2;
+			}
+			if (connection != null) {
+				connection.setRequestMethod(request.requestMethod);
+				connection.setDoOutput(true);
+				connection.setConnectTimeout(TIMEOUT_CONNECTION);
+				if (request.contentType != null) {
+					connection.setRequestProperty("Content-Type", request.contentType);
+				}
+				if (request.body != null) {
+					connection.setDoInput(true);
+					connection.setRequestProperty("Content-length", String.valueOf(request.body.length()));
+					final DataOutputStream output = new DataOutputStream(connection.getOutputStream());
+					output.writeBytes(request.body);
+				} else {
+					connection.connect();
+				}
+			}
+		} catch (Exception e) {
+			connection = null;
+		}
+		return connection;
+	}
 
+	/**
+	 * This is the core task of the downloader. 
+	 * 1. Pop the next download item
+	 * 2. Create the appropriate connection
+	 * 3. Handle the response
+	 * 4. Loop back until there aren't any items left
+	 */
 	@Override
 	protected Object doInBackground(Object... params) {
-		// Start conditions
-		boolean shouldRemove = false;
-		boolean firstAttempt = true;
-		int attempt = CONNECTION_ATTEMPTS;
-		Request request = null;
-		if (!mRequestQueue.isEmpty()) {
-			request = mRequestQueue.get(0);
-			attempt = Math.max(request.urlAddress.size(), CONNECTION_ATTEMPTS);
-		}
 		// Algorithm
 		while (!isCancelled()) {
 			try {
@@ -151,101 +160,82 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 			}
 			if (mRequestQueue.isEmpty()) {
 				if (!mIsProgressUpdated) {
+					// Don't kill the task until the UI has been updated.
 					continue;
 				} else {
 					// Exit
 					break;
 				}
 			} else {
-				request = mRequestQueue.get(0);
-				if (shouldRemove || attempt == 0) {
-					mRequestQueue.remove(0);
-					if (mRequestQueue.isEmpty()) {
-						continue;
-					}
-					// Reinit start conditions
-					request = mRequestQueue.get(0);
-					attempt = Math.max(request.urlAddress.size(), CONNECTION_ATTEMPTS);
-					firstAttempt = true;
-					shouldRemove = false;
-				} else {
-					--attempt;
-				}
-				if (firstAttempt) {
+				final Request request = mRequestQueue.get(0);
+				if (request.isFirstAttempt) {
 					publishProgress(PRE_LOAD, request.type);
-					firstAttempt = false;
+					request.isFirstAttempt = false;
 				}
 				try {
 					mIsProgressUpdated = false;
-					InputStream responseInputStream = null;
-					int responseCode = -1;
-					long lastModified = 0;
-					final URL url = new URL(request.urlAddress.getAddress() + request.path);
-					final String protocol = url.getProtocol();
-					HttpURLConnection connection = null;
-					if (protocol.equals("http")) {
-						connection = (HttpURLConnection) url.openConnection();
-					} else if (protocol.equals("https")) {
-						trustCertificate();
-						final HttpsURLConnection sslConnection = (HttpsURLConnection) url.openConnection();
-						sslConnection.setHostnameVerifier(new UberHostnameVerifier());
-						connection = sslConnection;
-					}
+					final HttpURLConnection connection = connect(request);
 					if (connection != null) {
-						connection.setRequestMethod(request.requestMethod);
-						connection.setDoOutput(true);
-						connection.setConnectTimeout(TIMEOUT_CONNECTION);
-						if (request.contentType != null) {
-							connection.setRequestProperty("Content-Type", request.contentType);
-						}
-						if (request.body != null) {
-							connection.setDoInput(true);
-							connection.setRequestProperty("Content-length", String.valueOf(request.body.length()));
-							final DataOutputStream output = new DataOutputStream(connection.getOutputStream());
-							output.writeBytes(request.body);
-						} else {
-							connection.connect();
-						}
-						responseCode = connection.getResponseCode();
-						lastModified = connection.getLastModified();
-						responseInputStream = connection.getInputStream();
-					}
-
-					if (responseCode == -1) {
-						// Network error.
-						request.urlAddress.rotateAddress();
-						if (attempt == 0) {
-							if (mIsConnected) {
-								publishProgress(ERROR, request.type);
-								mIsConnected = false;
-							}
+						request.responseCode = connection.getResponseCode();
+						if (request.responseCode >= 0) {
+							final InputStream responseStream = connection.getInputStream();
+							onServerResponse(request, responseStream, connection.getLastModified());
+							continue;
 						}
 					} else {
-						// Network is OK.
-						if (request.urlAddress.shouldRotateWithCode(responseCode)) {
-							// Server internal error.
-							request.urlAddress.rotateAddress();
-						}
-						final Response response = Response.create(request.type, responseInputStream, lastModified, request.reponseType);
-						response.setResponseCode(responseCode);
-						responseInputStream.close();
-						shouldRemove = true;
-						publishProgress(DONE, response);
-						mIsConnected = true;
+						onNetworkError(request);
 					}
-
 				} catch (Exception e) {
-					request.urlAddress.rotateAddress();
-					if (attempt == 0) {
-						if (mIsConnected) {
-							publishProgress(ERROR, request.type);
-							mIsConnected = false;
-						}
-					}
+					onNetworkError(request);
 				}
 			}
 		}
 		return null;
+	}
+	
+	private void onServerResponse(Request request, InputStream responseStream, long lastModified) throws ResponseException {
+		mIsConnected = true;
+		if (request.urlAddress.shouldRotateWithCode(request.responseCode)) {
+			// This error code means we should try another server.
+			if (--request.rotationCount == 0) {
+				// Actually we've already tried all of our servers,
+				// so remove this download item and publish a little error.
+				publishProgress(ERROR, request.type);
+				mRequestQueue.remove(0);
+			} else {
+				// We still have some servers to try, so let's use the next
+				// one and see if it works any better for our current download
+				// item.
+				request.urlAddress.rotateAddress();
+				// WTF: We need to send SSH requests twice because of some pipe errors.
+				try {
+					final URL url = new URL(request.urlAddress.getAddress());
+					final String protocol = url.getProtocol();
+					if (protocol.equals("http")) {
+						request.attemptCount = 1;
+					} else if (protocol.equals("https")) {
+						request.attemptCount = 2;
+					}
+				} catch (MalformedURLException e) {
+					request.attemptCount = 1;
+				}
+			}
+		} else {
+			// Everything looks good here. The response can still have an error code
+			// but it is handled by the server, so we consider it DONE.
+			final Response response = Response.create(request.type, responseStream, lastModified, request.responseType);
+			response.setResponseCode(request.responseCode);
+			mRequestQueue.remove(0);
+			publishProgress(DONE, response);
+		}
+	}
+	
+	private void onNetworkError(Request request) {
+		if (--request.attemptCount == 0) {
+			mIsConnected = false;
+			mRequestQueue.remove(0);
+			publishProgress(ERROR, request.type);
+		}
 	}
 
 	@Override
@@ -276,15 +266,57 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 			mDownloadListener.onCancel();
 		}
 	}
+	
+	public static String toQueryString(HashMap<String, String> params) {
+		final Object[] keys = params.keySet().toArray();
+		String paramsPath = "";
+		final int size = keys.length;
+		for (int i = 0; i < size; ++i) {
+			final String key = (String)keys[i];
+			paramsPath += key + "=" + params.get(key);
+			if (i < (size - 1)) {
+				paramsPath += "&";
+			}
+			i++;
+		}
+		return paramsPath;
+	}
 
+	/**
+	 * Wrapper for the request object
+	 * @author Jordan Bonnet
+	 *
+	 */
 	private static class Request {
+		
 		UrlAddress urlAddress;
 		String path;
 		String requestMethod;
 		String body;
 		String contentType;
-		int reponseType;
+		int responseType;
 		int type;
+		int responseCode;
+		int rotationCount;
+		int attemptCount;
+		boolean isFirstAttempt;
+		
+		public Request(UrlAddress urlAddress, String path, String requestMethod, String body, String contentType, int responseType, int type) {
+			this.urlAddress = urlAddress;
+			this.path = path;
+			this.requestMethod = requestMethod;
+			this.body = body;
+			this.contentType = contentType;
+			this.responseType = responseType;
+			this.type = type;
+			init();
+		}
+		
+		public void init() {
+			this.rotationCount = this.urlAddress.size();
+			this.attemptCount = 1;
+			this.responseCode = -1;
+			this.isFirstAttempt = true;
+		}
 	}
-
 }
