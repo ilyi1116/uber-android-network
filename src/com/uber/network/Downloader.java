@@ -178,7 +178,12 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 					if (connection != null) {
 						request.responseCode = connection.getResponseCode();
 						if (request.responseCode >= 0) {
-							final InputStream responseStream = connection.getInputStream();
+							final InputStream responseStream;
+							if (request.responseCode == 200) {
+								responseStream = connection.getInputStream();
+							} else {
+								responseStream = connection.getErrorStream();
+							}
 							onServerResponse(request, responseStream, connection.getLastModified());
 							continue;
 						}
