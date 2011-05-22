@@ -40,8 +40,9 @@ public class Response {
 	private String mStringData;
 	private long mLastModified;
 	private int mResponseCode = -1;
+	private Object mTag;
 	
-	public static Response create(int requestType, InputStream data, long lastModified, int responseType) throws ResponseException {
+	public static Response create(int requestType, InputStream data, long lastModified, int responseType, Object tag) throws ResponseException {
 		Response response = null;
 		if (data != null) {
 			String stringData = null;
@@ -74,6 +75,7 @@ public class Response {
 				response.setRequestType(requestType);
 				response.setStringData(stringData);
 				response.setLastModified(lastModified);
+				response.setTag(tag);
 			}
 		}
 		return response;
@@ -91,6 +93,10 @@ public class Response {
 		mLastModified = lastModified;
 	}
 	
+	private void setTag(Object tag) {
+		mTag = tag;
+	}
+	
 	public int getRequestType() {
 		return mRequestType;
 	}
@@ -101,6 +107,10 @@ public class Response {
 	
 	public long getLastModified() {
 		return mLastModified;
+	}
+	
+	public Object getTag() {
+		return mTag;
 	}
 	
 	public DataNode getDataNode() {

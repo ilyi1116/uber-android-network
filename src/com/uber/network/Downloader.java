@@ -55,7 +55,7 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 	}
 
 	public void addDownload(UrlAddress urlAddress, int type, int responseType) {
-		final Request request = new Request(urlAddress, "", "GET", null, null, responseType, type);
+		final Request request = new Request(urlAddress, "", "GET", null, null, responseType, type, null);
 		addDownload(request);
 	}
 
@@ -64,17 +64,17 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 	}
 	
 	public void addGet(UrlAddress urlAddress, String path, int type, int responseType) {
-		final Request request = new Request(urlAddress, path, "GET", null, null, responseType, type);
+		final Request request = new Request(urlAddress, path, "GET", null, null, responseType, type, null);
 		addDownload(request);
 	}
 
 	public void addHead(UrlAddress urlAddress, int type, int responseType) {
-		final Request request = new Request(urlAddress, "", "HEAD", null, null, responseType, type);
+		final Request request = new Request(urlAddress, "", "HEAD", null, null, responseType, type, null);
 		addDownload(request);
 	}
 
-	public void addPost(UrlAddress urlAddress, String path, String postRequest, String contentType, int type, int responseType) {
-		final Request request = new Request(urlAddress, path, "POST", postRequest, contentType, responseType, type);
+	public void addPost(UrlAddress urlAddress, String path, String postRequest, String contentType, int type, int responseType, Object tag) {
+		final Request request = new Request(urlAddress, path, "POST", postRequest, contentType, responseType, type, tag);
 		addDownload(request);
 	}
 
@@ -228,7 +228,7 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 		} else {
 			// Everything looks good here. The response can still have an error code
 			// but it is handled by the server, so we consider it DONE.
-			final Response response = Response.create(request.type, responseStream, lastModified, request.responseType);
+			final Response response = Response.create(request.type, responseStream, lastModified, request.responseType, request.tag);
 			response.setResponseCode(request.responseCode);
 			mRequestQueue.remove(0);
 			publishProgress(DONE, response);
@@ -305,8 +305,9 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 		int rotationCount;
 		int attemptCount;
 		boolean isFirstAttempt;
+		Object tag;
 		
-		public Request(UrlAddress urlAddress, String path, String requestMethod, String body, String contentType, int responseType, int type) {
+		public Request(UrlAddress urlAddress, String path, String requestMethod, String body, String contentType, int responseType, int type, Object tag) {
 			this.urlAddress = urlAddress;
 			this.path = path;
 			this.requestMethod = requestMethod;
@@ -314,6 +315,7 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 			this.contentType = contentType;
 			this.responseType = responseType;
 			this.type = type;
+			this.tag = tag;
 			init();
 		}
 		
