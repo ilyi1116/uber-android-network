@@ -36,6 +36,7 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
 
 import android.os.AsyncTask;
+import android.util.Log;
 
 public class Downloader extends AsyncTask<Object, Object, Object> {
 
@@ -44,12 +45,18 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 	private static final int ERROR = 2;
 
 	private final int TIMEOUT_CONNECTION = 5000;
-
+	
+	private boolean mIsInLoggingMode = false;
 	private boolean mIsConnected = true;
 	private boolean mIsProgressUpdated = false;
 	private OnDownloadListener mDownloadListener = null;
 	private final Vector<Request> mRequestQueue = new Vector<Request>();
+	private long mRequestAddedTime = 0;
 
+	public void setLoggingMode(boolean loggingMode){
+		mIsInLoggingMode = loggingMode;
+	}
+	
 	public void setOnDownloadListener(OnDownloadListener listener) {
 		mDownloadListener = listener;
 	}
@@ -82,6 +89,10 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 
 	private void addDownload(Request request) {
 		if (mIsConnected) {
+			if(mIsInLoggingMode){
+				Log.v("ADDED_REQUEST_TO_QUEUE", "REQUEST URL: " + request.urlAddress.getAddress() + request.path + "\nREQUEST BODY: " + request.body);
+				mRequestAddedTime = System.currentTimeMillis();
+			}
 			mRequestQueue.add(request);
 			if (getStatus() == AsyncTask.Status.PENDING) {
 				mIsProgressUpdated = false;
@@ -232,6 +243,11 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 			// but it is handled by the server, so we consider it DONE.
 			final Response response = Response.create(request.type, responseStream, lastModified, request.responseType, request.tag);
 			response.setResponseCode(request.responseCode);
+			if(mIsInLoggingMode){
+				final double timing = (double) (System.currentTimeMillis() - mRequestAddedTime) / 1000; 
+				Log.v("GOT_RESPONSE_FROM_REQUEST","TIMING: " + timing + "\nREQUEST URL: " + request.urlAddress.getAddress() + request.path + "\nREQUEST ATTEMPT: " + request.attemptCount + "\nRESPONSE CODE: " + response.getResponseCode()
+						+ "\nRESPONSE STRING: " + response.getStringData());
+			}
 			mRequestQueue.remove(0);
 			publishProgress(DONE, response);
 		}
