@@ -51,7 +51,6 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 	private boolean mIsProgressUpdated = false;
 	private OnDownloadListener mDownloadListener = null;
 	private final Vector<Request> mRequestQueue = new Vector<Request>();
-	private long mRequestAddedTime = 0;
 
 	public void setLoggingMode(boolean loggingMode){
 		mIsInLoggingMode = loggingMode;
@@ -89,10 +88,6 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 
 	private void addDownload(Request request) {
 		if (mIsConnected) {
-			if(mIsInLoggingMode){
-				Log.v("ADDED_REQUEST_TO_QUEUE", "REQUEST URL: " + request.urlAddress.getAddress() + request.path + "\nREQUEST BODY: " + request.body);
-				mRequestAddedTime = System.currentTimeMillis();
-			}
 			mRequestQueue.add(request);
 			if (getStatus() == AsyncTask.Status.PENDING) {
 				mIsProgressUpdated = false;
@@ -129,9 +124,6 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 				final HttpsURLConnection sslConnection = (HttpsURLConnection) url.openConnection();
 				sslConnection.setHostnameVerifier(new UberHostnameVerifier());
 				connection = sslConnection;
-				// WTF: a bug in android forces us to try connecting twice in a row
-				// for Https connections.
-				request.attemptCount = 2;
 			}
 			if (connection != null) {
 				connection.setRequestMethod(request.requestMethod);
@@ -182,14 +174,36 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 			} else {
 				final Request request = mRequestQueue.get(0);
 				if (request.isFirstAttempt) {
+					if (request.getProtocol().equals("https")) {
+						// WTF: Bug on android for https - Broken pipe
+						request.attemptCount = 2;
+					}
 					publishProgress(PRE_LOAD, request.type);
 					request.isFirstAttempt = false;
+				}
+				long timeInMs = 0;
+				if (mIsInLoggingMode) {
+					Log.v("Uber", "**************** Uber REQUEST ****************");
+					Log.v("Uber", "Uber METHOD: " + request.requestMethod);
+					Log.v("Uber", "Uber REQUEST URL: " + request.urlAddress.getAddress() + request.path);
+					Log.v("Uber", "Uber REQUEST BODY: " + request.body);
+					timeInMs = System.currentTimeMillis();
 				}
 				try {
 					mIsProgressUpdated = false;
 					final HttpURLConnection connection = connect(request);
+					if (mIsInLoggingMode) {
+						final double timing = (double) (System.currentTimeMillis() - timeInMs) / 1000; 
+						Log.v("Uber", "***************** Uber RESPONSE ******************");
+						Log.v("Uber", "Uber REQUEST URL: " + request.urlAddress.getAddress() + request.path);
+						Log.v("Uber", "Uber TIMING: " + timing);
+						Log.v("Uber", "Uber REQUEST ATTEMPT: " + request.attemptCount);
+					}
 					if (connection != null) {
 						request.responseCode = connection.getResponseCode();
+						if (mIsInLoggingMode) {
+							Log.v("Uber", "Uber RESPONSE CODE: " + request.responseCode);
+						}
 						if (request.responseCode >= 0) {
 							final InputStream responseStream;
 							if (request.responseCode == 200) {
@@ -198,12 +212,14 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 								responseStream = connection.getErrorStream();
 							}
 							onServerResponse(request, responseStream, connection.getLastModified());
-							continue;
+						} else {
+							onNetworkError(request);
 						}
 					} else {
 						onNetworkError(request);
 					}
 				} catch (Exception e) {
+					Log.v("\n\nUber", "Uber Response: ERROR");
 					onNetworkError(request);
 				}
 			}
@@ -243,11 +259,6 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 			// but it is handled by the server, so we consider it DONE.
 			final Response response = Response.create(request.type, responseStream, lastModified, request.responseType, request.tag);
 			response.setResponseCode(request.responseCode);
-			if(mIsInLoggingMode){
-				final double timing = (double) (System.currentTimeMillis() - mRequestAddedTime) / 1000; 
-				Log.v("GOT_RESPONSE_FROM_REQUEST","TIMING: " + timing + "\nREQUEST URL: " + request.urlAddress.getAddress() + request.path + "\nREQUEST ATTEMPT: " + request.attemptCount + "\nRESPONSE CODE: " + response.getResponseCode()
-						+ "\nRESPONSE STRING: " + response.getStringData());
-			}
 			mRequestQueue.remove(0);
 			publishProgress(DONE, response);
 		}
@@ -342,6 +353,14 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 			this.attemptCount = 1;
 			this.responseCode = -1;
 			this.isFirstAttempt = true;
+		}
+		
+		public String getProtocol() {
+			try {
+				return new URL(this.urlAddress.getAddress() + this.path).getProtocol();
+			} catch (MalformedURLException e) {
+				return "";
+			}
 		}
 	}
 }
