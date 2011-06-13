@@ -45,43 +45,46 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 	private static final int ERROR = 2;
 
 	private final int TIMEOUT_CONNECTION = 5000;
-	
+
+	public final static int DOWNLOADER_NORMAL_PRIORITY = 0;
+	public final static int DOWNLOADER_RETRY_LOW_PRIORITY = 1;
+
 	private boolean mIsInLoggingMode = false;
 	private boolean mIsConnected = true;
 	private boolean mIsProgressUpdated = false;
 	private OnDownloadListener mDownloadListener = null;
 	private final Vector<Request> mRequestQueue = new Vector<Request>();
 
-	public void setLoggingMode(boolean loggingMode){
+	public void setLoggingMode(boolean loggingMode) {
 		mIsInLoggingMode = loggingMode;
 	}
-	
+
 	public void setOnDownloadListener(OnDownloadListener listener) {
 		mDownloadListener = listener;
 	}
 
-	public void addDownload(UrlAddress urlAddress, int type, int responseType) {
-		final Request request = new Request(urlAddress, "", "GET", null, null, responseType, type, null);
+	public void addDownload(UrlAddress urlAddress, int type, int responseType, int priority) {
+		final Request request = new Request(urlAddress, "", "GET", null, null, responseType, type, null, priority);
 		addDownload(request);
 	}
 
-	public void addGet(UrlAddress urlAddress, HashMap<String, String> params, int type, int responseType) {
-		addGet(urlAddress, toQueryString(params), type, responseType);
+	public void addGet(UrlAddress urlAddress, HashMap<String, String> params, int type, int responseType, int priority) {
+		addGet(urlAddress, toQueryString(params), type, responseType, priority);
 	}
-	
-	public void addGet(UrlAddress urlAddress, String path, int type, int responseType) {
-		final Request request = new Request(urlAddress, path, "GET", null, null, responseType, type, null);
+
+	public void addGet(UrlAddress urlAddress, String path, int type, int responseType, int priority) {
+		final Request request = new Request(urlAddress, path, "GET", null, null, responseType, type, null, priority);
 		addDownload(request);
 	}
 
-	public void addHead(UrlAddress urlAddress, int type, int responseType) {
-		final Request request = new Request(urlAddress, "", "HEAD", null, null, responseType, type, null);
+	public void addHead(UrlAddress urlAddress, int type, int responseType, int priority) {
+		final Request request = new Request(urlAddress, "", "HEAD", null, null, responseType, type, null, priority);
 		addDownload(request);
 	}
 
-	public void addPost(UrlAddress urlAddress, String path, String postRequest, String contentType, int type, int responseType, Object tag) {
+	public void addPost(UrlAddress urlAddress, String path, String postRequest, String contentType, int type, int responseType, Object tag, int priority) {
 		if (urlAddress != null) {
-			final Request request = new Request(urlAddress, path, "POST", postRequest, contentType, responseType, type, tag);
+			final Request request = new Request(urlAddress, path, "POST", postRequest, contentType, responseType, type, tag, priority);
 			addDownload(request);
 		}
 	}
@@ -105,10 +108,10 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 			// Pretty fucked here
 		}
 	}
-	
+
 	/**
-	 * This is a *smart* helper method which, given a request,
-	 * manages to create the right kind of http connection.
+     * This is a *smart* helper method which, given a request,
+     * manages to create the right kind of http connection.
 	 * @param request
 	 * @return the connection object
 	 */
@@ -148,11 +151,11 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 	}
 
 	/**
-	 * This is the core task of the downloader. 
-	 * 1. Pop the next download item
-	 * 2. Create the appropriate connection
-	 * 3. Handle the response
-	 * 4. Loop back until there aren't any items left
+     * This is the core task of the downloader. 
+     * 1. Pop the next download item
+     * 2. Create the appropriate connection
+     * 3. Handle the response
+     * 4. Loop back until there aren't any items left
 	 */
 	@Override
 	protected Object doInBackground(Object... params) {
@@ -193,7 +196,7 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 					mIsProgressUpdated = false;
 					final HttpURLConnection connection = connect(request);
 					if (mIsInLoggingMode) {
-						final double timing = (double) (System.currentTimeMillis() - timeInMs) / 1000; 
+						final double timing = (double) (System.currentTimeMillis() - timeInMs) / 1000;
 						Log.v("Uber", "***************** Uber RESPONSE ******************");
 						Log.v("Uber", "Uber REQUEST URL: " + request.urlAddress.getAddress() + request.path);
 						Log.v("Uber", "Uber TIMING: " + timing);
@@ -226,7 +229,7 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 		}
 		return null;
 	}
-	
+
 	private void onServerResponse(Request request, InputStream responseStream, long lastModified) throws ResponseException {
 		mIsConnected = true;
 		if (request.urlAddress.shouldRotateWithCode(request.responseCode)) {
@@ -263,12 +266,22 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 			publishProgress(DONE, response);
 		}
 	}
-	
+
 	private void onNetworkError(Request request) {
-		if (--request.attemptCount == 0) {
+		if (request.priority == DOWNLOADER_RETRY_LOW_PRIORITY) {
+			moveFirstItemToEnd();
+		} else if (--request.attemptCount == 0) {
 			mIsConnected = false;
 			mRequestQueue.remove(0);
 			publishProgress(ERROR, request.type);
+		}
+	}
+
+	private void moveFirstItemToEnd() {
+		if (mRequestQueue != null && mRequestQueue.size() > 0) {
+			final Request request = mRequestQueue.get(0);
+			mRequestQueue.remove(0);
+			mRequestQueue.add(request);
 		}
 	}
 
@@ -300,13 +313,13 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 			mDownloadListener.onCancel();
 		}
 	}
-	
+
 	public static String toQueryString(HashMap<String, String> params) {
 		final Object[] keys = params.keySet().toArray();
 		String paramsPath = "";
 		final int size = keys.length;
 		for (int i = 0; i < size; ++i) {
-			final String key = (String)keys[i];
+			final String key = (String) keys[i];
 			paramsPath += key + "=" + params.get(key);
 			if (i < (size - 1)) {
 				paramsPath += "&";
@@ -318,11 +331,12 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 
 	/**
 	 * Wrapper for the request object
+	 * 
 	 * @author Jordan Bonnet
-	 *
+	 * 
 	 */
 	private static class Request {
-		
+
 		UrlAddress urlAddress;
 		String path;
 		String requestMethod;
@@ -333,10 +347,11 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 		int responseCode;
 		int rotationCount;
 		int attemptCount;
+		int priority;
 		boolean isFirstAttempt;
 		Object tag;
-		
-		public Request(UrlAddress urlAddress, String path, String requestMethod, String body, String contentType, int responseType, int type, Object tag) {
+
+		public Request(UrlAddress urlAddress, String path, String requestMethod, String body, String contentType, int responseType, int type, Object tag, int priority) {
 			this.urlAddress = urlAddress;
 			this.path = path;
 			this.requestMethod = requestMethod;
@@ -345,16 +360,17 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 			this.responseType = responseType;
 			this.type = type;
 			this.tag = tag;
+			this.priority = priority;
 			init();
 		}
-		
+
 		public void init() {
 			this.rotationCount = this.urlAddress.size();
 			this.attemptCount = 1;
 			this.responseCode = -1;
 			this.isFirstAttempt = true;
 		}
-		
+
 		public String getProtocol() {
 			try {
 				return new URL(this.urlAddress.getAddress() + this.path).getProtocol();
