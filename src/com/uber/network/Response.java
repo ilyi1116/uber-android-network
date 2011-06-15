@@ -36,16 +36,17 @@ public class Response {
 	public final static int IMAGE_TYPE = 602;
 	public final static int NO_TYPE = 603;
 	
-	private int mRequestType = -1;
 	private String mStringData;
 	private long mLastModified;
 	private int mResponseCode = -1;
-	private Object mTag;
+	private Request mRequest;
 	
-	public static Response create(int requestType, InputStream data, long lastModified, int responseType, Object tag) throws ResponseException {
+	
+	public static Response create(Request request, InputStream data, long lastModified) throws ResponseException {
 		Response response = null;
 		if (data != null) {
 			String stringData = null;
+			int responseType = request.getResponseType();
 			if (responseType == XML_TYPE) {
 				try {
 					response = new XmlResponse(data);
@@ -72,19 +73,22 @@ public class Response {
 						// Nothing to do
 					}
 				}
-				response.setRequestType(requestType);
+				response.setRequest(request);
 				response.setStringData(stringData);
 				response.setLastModified(lastModified);
-				response.setTag(tag);
 			}
 		}
 		return response;
 	}
 	
-	private void setRequestType(int type) {
-		mRequestType = type;
+	private void setRequest(Request request) {
+		mRequest = request;
 	}
 	
+	public Request getRequest() {
+		return mRequest;
+	}
+
 	private void setStringData(String stringData) {
 		mStringData = stringData;
 	}
@@ -93,24 +97,12 @@ public class Response {
 		mLastModified = lastModified;
 	}
 	
-	private void setTag(Object tag) {
-		mTag = tag;
-	}
-	
-	public int getRequestType() {
-		return mRequestType;
-	}
-	
 	public String getStringData() {
 		return mStringData;
 	}
 	
 	public long getLastModified() {
 		return mLastModified;
-	}
-	
-	public Object getTag() {
-		return mTag;
 	}
 	
 	public DataNode getDataNode() {
