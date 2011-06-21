@@ -54,6 +54,16 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 	private boolean mIsProgressUpdated = false;
 	private OnDownloadListener mDownloadListener = null;
 	private final Vector<Request> mRequestQueue = new Vector<Request>();
+	private HttpURLConnection mConnection = null;
+
+	public Downloader() {
+		super();
+	}
+
+	public Downloader(HttpURLConnection connection) {
+		super();
+		mConnection = connection;
+	}
 
 	public void setLoggingMode(boolean loggingMode) {
 		mIsInLoggingMode = loggingMode;
@@ -117,46 +127,50 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 	 * @return the connection object
 	 */
 	private HttpURLConnection connect(Request request) {
-		HttpURLConnection connection = null;
-		try {
-			final URL url = new URL(request.getUrlAddress().getAddress() + request.getPath());
-			final String protocol = url.getProtocol();
-			if (protocol.equals("http")) {
-				connection = (HttpURLConnection) url.openConnection();
-			} else if (protocol.equals("https")) {
-				trustCertificate();
-				final HttpsURLConnection sslConnection = (HttpsURLConnection) url.openConnection();
-				sslConnection.setHostnameVerifier(new UberHostnameVerifier());
-				connection = sslConnection;
-			}
-			if (connection != null) {
-				connection.setRequestMethod(request.getRequestMethod());
-				connection.setDoOutput(true);
-				connection.setConnectTimeout(TIMEOUT_CONNECTION);
-				if (request.getContentType() != null) {
-					connection.setRequestProperty("Content-Type", request.getContentType());
+		if (mConnection != null) {
+			return mConnection;
+		} else {
+			HttpURLConnection connection = null;
+			try {
+				final URL url = new URL(request.getUrlAddress().getAddress() + request.getPath());
+				final String protocol = url.getProtocol();
+				if (protocol.equals("http")) {
+					connection = (HttpURLConnection) url.openConnection();
+				} else if (protocol.equals("https")) {
+					trustCertificate();
+					final HttpsURLConnection sslConnection = (HttpsURLConnection) url.openConnection();
+					sslConnection.setHostnameVerifier(new UberHostnameVerifier());
+					connection = sslConnection;
 				}
-				if (request.getBody() != null) {
-					connection.setDoInput(true);
-					connection.setRequestProperty("Content-length", String.valueOf(request.getBody().length()));
-					final DataOutputStream output = new DataOutputStream(connection.getOutputStream());
-					output.writeBytes(request.getBody());
-				} else {
-					connection.connect();
+				if (connection != null) {
+					connection.setRequestMethod(request.getRequestMethod());
+					connection.setDoOutput(true);
+					connection.setConnectTimeout(TIMEOUT_CONNECTION);
+					if (request.getContentType() != null) {
+						connection.setRequestProperty("Content-Type", request.getContentType());
+					}
+					if (request.getBody() != null) {
+						connection.setDoInput(true);
+						connection.setRequestProperty("Content-length", String.valueOf(request.getBody().length()));
+						final DataOutputStream output = new DataOutputStream(connection.getOutputStream());
+						output.writeBytes(request.getBody());
+					} else {
+						connection.connect();
+					}
 				}
+			} catch (Exception e) {
+				connection = null;
 			}
-		} catch (Exception e) {
-			connection = null;
+			return connection;
 		}
-		return connection;
 	}
 
 	/**
-	 * This is the core task of the downloader. 
-	 * 1. Pop the next download item 
-	 * 2. Create the appropriate connection
-	 * 3. Handle the response
-	 * 4. Loop back until there aren't any items left
+        * This is the core task of the downloader. 
+        * 1. Pop the next download item 
+        * 2. Create the appropriate connection
+        * 3. Handle the response
+        * 4. Loop back until there aren't any items left
 	 */
 	@Override
 	protected Object doInBackground(Object... params) {
@@ -262,7 +276,6 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 			// Everything looks good here. The response can still have an error code,
 			// but it is handled by the server, so we consider it DONE.
 			final Response response = Response.create(request, responseStream, lastModified);
-			response.setResponseCode(request.getResponseCode());
 			mRequestQueue.remove(0);
 			publishProgress(DONE, response);
 		}

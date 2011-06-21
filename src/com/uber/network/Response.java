@@ -19,7 +19,7 @@
     LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
     OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
     THE SOFTWARE.
-*/
+ */
 
 package com.uber.network;
 
@@ -30,20 +30,20 @@ import java.io.InputStreamReader;
 import android.graphics.Bitmap;
 
 public class Response {
-	
+
 	public final static int XML_TYPE = 600;
 	public final static int JSON_TYPE = 601;
 	public final static int IMAGE_TYPE = 602;
 	public final static int NO_TYPE = 603;
-	
+
 	private String mStringData;
 	private long mLastModified;
 	private int mResponseCode = -1;
 	private Request mRequest;
-	
-	
+
 	public static Response create(Request request, InputStream data, long lastModified) throws ResponseException {
 		Response response = null;
+		data.mark(100000);
 		if (data != null) {
 			String stringData = null;
 			int responseType = request.getResponseType();
@@ -76,15 +76,16 @@ public class Response {
 				response.setRequest(request);
 				response.setStringData(stringData);
 				response.setLastModified(lastModified);
+				response.setResponseCode(request.getResponseCode());
 			}
 		}
 		return response;
 	}
-	
+
 	private void setRequest(Request request) {
 		mRequest = request;
 	}
-	
+
 	public Request getRequest() {
 		return mRequest;
 	}
@@ -92,28 +93,31 @@ public class Response {
 	private void setStringData(String stringData) {
 		mStringData = stringData;
 	}
-	
+
 	private void setLastModified(long lastModified) {
 		mLastModified = lastModified;
 	}
-	
+
 	public String getStringData() {
 		return mStringData;
 	}
-	
+
 	public long getLastModified() {
 		return mLastModified;
 	}
-	
+
 	public DataNode getDataNode() {
 		return null;
 	}
-	
+
 	public Bitmap getBitmap() {
 		return null;
 	}
-	
+
 	public static String streamToString(InputStream stream) throws IOException {
+		if (stream!=null && stream.markSupported() && stream.available() == 0) {
+			stream.reset();
+		}
 		final char[] buffer = new char[0x10000];
 		final StringBuilder stringBuilder = new StringBuilder();
 		final InputStreamReader isr = new InputStreamReader(stream, "UTF-8");
@@ -127,9 +131,9 @@ public class Response {
 	public void setResponseCode(int responseCode) {
 		mResponseCode = responseCode;
 	}
-	
+
 	public int getResponseCode() {
 		return mResponseCode;
 	}
-	
+
 }
