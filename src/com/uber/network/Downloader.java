@@ -93,10 +93,8 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 	}
 
 	public void addPost(UrlAddress urlAddress, String path, String postRequest, String contentType, int type, int responseType, Object tag, int priority) {
-		if (urlAddress != null) {
-			final Request request = new Request(urlAddress, path, "POST", postRequest, contentType, responseType, type, tag, priority);
-			addDownload(request);
-		}
+		final Request request = new Request(urlAddress, path, "POST", postRequest, contentType, responseType, type, tag, priority);
+		addDownload(request);
 	}
 
 	private void addDownload(Request request) {
@@ -127,7 +125,9 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 	 * @return the connection object
 	 */
 	private HttpURLConnection connect(Request request) {
-		if (mConnection != null) {
+		if (request.getRotationCount() == 0) {
+			return null;
+		} else if (mConnection != null) {
 			return mConnection;
 		} else {
 			HttpURLConnection connection = null;

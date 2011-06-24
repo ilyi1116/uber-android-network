@@ -33,7 +33,7 @@ public class Request {
 	}
 
 	public void init() {
-		this.rotationCount = this.urlAddress.size();
+		this.rotationCount = this.urlAddress == null ? 0 : this.urlAddress.size();
 		this.attemptCount = 1;
 		this.responseCode = -1;
 		this.isFirstAttempt = true;
