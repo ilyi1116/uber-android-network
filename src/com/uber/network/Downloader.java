@@ -44,7 +44,8 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 	private static final int PRE_LOAD = 1;
 	private static final int ERROR = 2;
 
-	private final int TIMEOUT_CONNECTION = 5000;
+	private final int CONNECTION_TIMEOUT = 5000;
+	private final int READ_TIMEOUT = 20000;
 
 	public final static int DOWNLOADER_NORMAL_PRIORITY = 0;
 	public final static int DOWNLOADER_RETRY_LOW_PRIORITY = 1;
@@ -132,30 +133,34 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 		} else {
 			HttpURLConnection connection = null;
 			try {
-				final URL url = new URL(request.getUrlAddress().getAddress() + request.getPath());
-				final String protocol = url.getProtocol();
-				if (protocol.equals("http")) {
-					connection = (HttpURLConnection) url.openConnection();
-				} else if (protocol.equals("https")) {
-					trustCertificate();
-					final HttpsURLConnection sslConnection = (HttpsURLConnection) url.openConnection();
-					sslConnection.setHostnameVerifier(new UberHostnameVerifier());
-					connection = sslConnection;
-				}
-				if (connection != null) {
-					connection.setRequestMethod(request.getRequestMethod());
-					connection.setDoOutput(true);
-					connection.setConnectTimeout(TIMEOUT_CONNECTION);
-					if (request.getContentType() != null) {
-						connection.setRequestProperty("Content-Type", request.getContentType());
+				final UrlAddress urlAddress = request.getUrlAddress();
+				if (urlAddress != null) {
+					final URL url = new URL(urlAddress.getAddress() + request.getPath());
+					final String protocol = url.getProtocol();
+					if (protocol.equals("http")) {
+						connection = (HttpURLConnection) url.openConnection();
+					} else if (protocol.equals("https")) {
+						trustCertificate();
+						final HttpsURLConnection sslConnection = (HttpsURLConnection) url.openConnection();
+						sslConnection.setHostnameVerifier(new UberHostnameVerifier());
+						connection = sslConnection;
 					}
-					if (request.getBody() != null) {
-						connection.setDoInput(true);
-						connection.setRequestProperty("Content-length", String.valueOf(request.getBody().length()));
-						final DataOutputStream output = new DataOutputStream(connection.getOutputStream());
-						output.writeBytes(request.getBody());
-					} else {
-						connection.connect();
+					if (connection != null) {
+						connection.setRequestMethod(request.getRequestMethod());
+						connection.setDoOutput(true);
+						connection.setConnectTimeout(CONNECTION_TIMEOUT);
+						connection.setReadTimeout(READ_TIMEOUT);
+						if (request.getContentType() != null) {
+							connection.setRequestProperty("Content-Type", request.getContentType());
+						}
+						if (request.getBody() != null) {
+							connection.setDoInput(true);
+							connection.setRequestProperty("Content-length", String.valueOf(request.getBody().length()));
+							final DataOutputStream output = new DataOutputStream(connection.getOutputStream());
+							output.writeBytes(request.getBody());
+						} else {
+							connection.connect();
+						}
 					}
 				}
 			} catch (Exception e) {
@@ -249,6 +254,7 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 		mIsConnected = true;
 		if (request.getUrlAddress().shouldRotateWithCode(request.getResponseCode())) {
 			// This error code means we should try another server.
+			request.getUrlAddress().rotateAddress();
 			request.setRotationCount(request.getRotationCount() - 1);
 			if (request.getRotationCount() == 0) {
 				// Actually we've already tried all of our servers,
@@ -258,7 +264,6 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 			} else {
 				// We still have some servers to try, so let's use the next
 				// one and see if it works any better for our current download item.
-				request.getUrlAddress().rotateAddress();
 				// WTF: We need to send SSH requests twice because of some pipe errors.
 				try {
 					final URL url = new URL(request.getUrlAddress().getAddress());
