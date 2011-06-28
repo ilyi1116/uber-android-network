@@ -24,10 +24,14 @@
 package com.uber.network;
 
 import java.io.DataOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
+import java.net.ConnectException;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
+import java.net.SocketTimeoutException;
 import java.net.URL;
+import java.net.UnknownHostException;
 import java.util.HashMap;
 import java.util.Vector;
 
@@ -124,15 +128,13 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 	 * 
 	 * @param request
 	 * @return the connection object
+	 * @throws IOException 
 	 */
-	private HttpURLConnection connect(Request request) {
-		if (request.getRotationCount() == 0) {
-			return null;
-		} else if (mConnection != null) {
+	private HttpURLConnection connect(Request request) throws IOException {
+		if (mConnection != null) {
 			return mConnection;
 		} else {
 			HttpURLConnection connection = null;
-			try {
 				final UrlAddress urlAddress = request.getUrlAddress();
 				if (urlAddress != null) {
 					final URL url = new URL(urlAddress.getAddress() + request.getPath());
@@ -163,9 +165,6 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 						}
 					}
 				}
-			} catch (Exception e) {
-				connection = null;
-			}
 			return connection;
 		}
 	}
@@ -241,9 +240,18 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 					} else {
 						onNetworkError(request);
 					}
-				} catch (Exception e) {
-					Log.v("\n\nUber", "Uber Response: ERROR");
-					onNetworkError(request);
+				} catch (Exception exception) {
+					if (exception instanceof ConnectException) {
+						// Server is down.
+						rotateAddress(request);
+					} else if (exception instanceof UnknownHostException || exception instanceof SocketTimeoutException) {
+						// Internet connection is down
+						onNetworkError(request);
+					} else {
+						// Don't know why it's here
+						Log.v("\n\nUber", "Uber Response: ERROR");
+						onNetworkError(request);
+					}
 				}
 			}
 		}
@@ -254,29 +262,7 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 		mIsConnected = true;
 		if (request.getUrlAddress().shouldRotateWithCode(request.getResponseCode())) {
 			// This error code means we should try another server.
-			request.getUrlAddress().rotateAddress();
-			request.setRotationCount(request.getRotationCount() - 1);
-			if (request.getRotationCount() == 0) {
-				// Actually we've already tried all of our servers,
-				// so remove this download item and publish a little error.
-				publishProgress(ERROR, request.getType());
-				mRequestQueue.remove(0);
-			} else {
-				// We still have some servers to try, so let's use the next
-				// one and see if it works any better for our current download item.
-				// WTF: We need to send SSH requests twice because of some pipe errors.
-				try {
-					final URL url = new URL(request.getUrlAddress().getAddress());
-					final String protocol = url.getProtocol();
-					if (protocol.equals("http")) {
-						request.setAttemptCount(1);
-					} else if (protocol.equals("https")) {
-						request.setAttemptCount(2);
-					}
-				} catch (MalformedURLException e) {
-					request.setAttemptCount(1);
-				}
-			}
+			rotateAddress(request);
 		} else {
 			// Everything looks good here. The response can still have an error code,
 			// but it is handled by the server, so we consider it DONE.
@@ -299,6 +285,32 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 		}
 	}
 
+	private void rotateAddress(Request request) {
+		request.getUrlAddress().rotateAddress();
+		request.setRotationCount(request.getRotationCount() - 1);
+		if (request.getRotationCount() == 0) {
+			// Actually we've already tried all of our servers,
+			// so remove this download item and publish a little error.
+			publishProgress(ERROR, request.getType());
+			mRequestQueue.remove(0);
+		} else {
+			// We still have some servers to try, so let's use the next
+			// one and see if it works any better for our current download item.
+			// WTF: We need to send SSH requests twice because of some pipe errors.
+			try {
+				final URL url = new URL(request.getUrlAddress().getAddress());
+				final String protocol = url.getProtocol();
+				if (protocol.equals("http")) {
+					request.setAttemptCount(1);
+				} else if (protocol.equals("https")) {
+					request.setAttemptCount(2);
+				}
+			} catch (MalformedURLException e) {
+				request.setAttemptCount(1);
+			}
+		}
+	}
+	
 	private void moveFirstItemToEnd() {
 		if (mRequestQueue != null && mRequestQueue.size() > 0) {
 			final Request request = mRequestQueue.get(0);
