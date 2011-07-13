@@ -86,7 +86,7 @@ public class XmlNode extends DataNode {
 	@Override
 	public double getDouble(double defaultDouble) {
 		if (mNode.hasChildNodes()) {
-			return Double.valueOf(mNode.getFirstChild().getNodeValue());
+			return Util.parseDouble(mNode.getFirstChild().getNodeValue());
 		}
 		return defaultDouble;
 	}
