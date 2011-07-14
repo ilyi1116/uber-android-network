@@ -28,6 +28,8 @@ import java.util.ArrayList;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
+import com.uber.utils.NumberUtils;
+
 public class XmlNode extends DataNode {
 	
 	private Node mNode;
@@ -86,7 +88,10 @@ public class XmlNode extends DataNode {
 	@Override
 	public double getDouble(double defaultDouble) {
 		if (mNode.hasChildNodes()) {
-			return Util.parseDouble(mNode.getFirstChild().getNodeValue());
+			final Double doubleValue = NumberUtils.parseDouble(mNode.getFirstChild().getNodeValue());
+			if (doubleValue != null) {
+				return doubleValue;
+			}
 		}
 		return defaultDouble;
 	}
