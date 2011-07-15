@@ -80,7 +80,10 @@ public class XmlNode extends DataNode {
 	@Override
 	public int getInt(int defaultInt) {
 		if (mNode.hasChildNodes()) {
-			return Integer.valueOf(mNode.getFirstChild().getNodeValue());
+			final Integer intValue = NumberUtils.parseInteger(mNode.getFirstChild().getNodeValue());
+			if (intValue != null) {
+				return intValue;
+			}
 		}
 		return defaultInt;
 	}
