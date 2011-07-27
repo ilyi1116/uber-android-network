@@ -98,7 +98,11 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 	}
 
 	public void addPost(UrlAddress urlAddress, String path, String postRequest, String contentType, int type, int responseType, Object tag, int priority) {
-		final Request request = new Request(urlAddress, path, "POST", postRequest, contentType, responseType, type, tag, priority);
+		addRequest(urlAddress, path, postRequest, contentType, type, responseType, tag, priority,"POST");
+	}
+	
+	public void addRequest(UrlAddress urlAddress, String path, String postRequest,  String contentType, int type, int responseType, Object tag, int priority,String requestMethod) {
+		final Request request = new Request(urlAddress, path, requestMethod, postRequest, contentType, responseType, type, tag, priority);
 		addDownload(request);
 	}
 
