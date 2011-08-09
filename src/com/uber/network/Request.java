@@ -42,7 +42,7 @@ public class Request {
 	public String getProtocol() {
 		try {
 			return new URL(this.urlAddress.getAddress() + this.path).getProtocol();
-		} catch (MalformedURLException e) {
+		} catch (Exception e) {
 			return "";
 		}
 	}

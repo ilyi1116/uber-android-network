@@ -40,6 +40,7 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
 
 import android.os.AsyncTask;
+import android.os.Bundle;
 import android.util.Log;
 
 public class Downloader extends AsyncTask<Object, Object, Object> {
@@ -60,7 +61,8 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 	private OnDownloadListener mDownloadListener = null;
 	private final Vector<Request> mRequestQueue = new Vector<Request>();
 	private HttpURLConnection mConnection = null;
-
+	private Bundle headerParams;
+	
 	public Downloader() {
 		super();
 	}
@@ -139,7 +141,7 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 			return mConnection;
 		} else {
 			HttpURLConnection connection = null;
-				final UrlAddress urlAddress = request.getUrlAddress();
+			final UrlAddress urlAddress = request.getUrlAddress();
 				if (urlAddress != null) {
 					final URL url = new URL(urlAddress.getAddress() + request.getPath());
 					final String protocol = url.getProtocol();
@@ -152,6 +154,18 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 						connection = sslConnection;
 					}
 					if (connection != null) {
+						if (headerParams != null) {
+							for (String key : headerParams.keySet()) {
+								final Object param = headerParams.get(key);
+								if (param != null) {
+									if (param instanceof String) {
+										connection.addRequestProperty(key, (String) param);
+									} else {
+										connection.addRequestProperty(key, param.toString());
+									}
+								}
+							}
+						}
 						connection.setRequestMethod(request.getRequestMethod());
 						connection.setDoOutput(true);
 						connection.setConnectTimeout(CONNECTION_TIMEOUT);
@@ -171,6 +185,10 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 				}
 			return connection;
 		}
+	}
+
+	public void setHeaderParams(Bundle headerParams) {
+		this.headerParams = headerParams;
 	}
 
 	/**
