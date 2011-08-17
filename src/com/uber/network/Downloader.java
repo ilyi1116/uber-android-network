@@ -62,7 +62,7 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 	private final Vector<Request> mRequestQueue = new Vector<Request>();
 	private HttpURLConnection mConnection = null;
 	private Bundle headerParams;
-	
+
 	public Downloader() {
 		super();
 	}
@@ -85,7 +85,7 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 		addDownload(request);
 	}
 
-	public void addGet(UrlAddress urlAddress, HashMap<String, String> params, int type, int responseType, int priority) {
+	public void addGet(UrlAddress urlAddress, HashMap<String, Object> params, int type, int responseType, int priority) {
 		addGet(urlAddress, toQueryString(params), type, responseType, priority);
 	}
 
@@ -100,10 +100,10 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 	}
 
 	public void addPost(UrlAddress urlAddress, String path, String postRequest, String contentType, int type, int responseType, Object tag, int priority) {
-		addRequest(urlAddress, path, postRequest, contentType, type, responseType, tag, priority,"POST");
+		addRequest(urlAddress, path, postRequest, contentType, type, responseType, tag, priority, "POST");
 	}
-	
-	public void addRequest(UrlAddress urlAddress, String path, String postRequest,  String contentType, int type, int responseType, Object tag, int priority,String requestMethod) {
+
+	public void addRequest(UrlAddress urlAddress, String path, String postRequest, String contentType, int type, int responseType, Object tag, int priority, String requestMethod) {
 		final Request request = new Request(urlAddress, path, requestMethod, postRequest, contentType, responseType, type, tag, priority);
 		addDownload(request);
 	}
@@ -134,7 +134,7 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 	 * 
 	 * @param request
 	 * @return the connection object
-	 * @throws IOException 
+	 * @throws IOException
 	 */
 	private HttpURLConnection connect(Request request) throws IOException {
 		if (mConnection != null) {
@@ -142,47 +142,51 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 		} else {
 			HttpURLConnection connection = null;
 			final UrlAddress urlAddress = request.getUrlAddress();
-				if (urlAddress != null) {
-					final URL url = new URL(urlAddress.getAddress() + request.getPath());
-					final String protocol = url.getProtocol();
-					if (protocol.equals("http")) {
-						connection = (HttpURLConnection) url.openConnection();
-					} else if (protocol.equals("https")) {
-						trustCertificate();
-						final HttpsURLConnection sslConnection = (HttpsURLConnection) url.openConnection();
-						sslConnection.setHostnameVerifier(new UberHostnameVerifier());
-						connection = sslConnection;
-					}
-					if (connection != null) {
-						if (headerParams != null) {
-							for (String key : headerParams.keySet()) {
-								final Object param = headerParams.get(key);
-								if (param != null) {
-									if (param instanceof String) {
-										connection.addRequestProperty(key, (String) param);
-									} else {
-										connection.addRequestProperty(key, param.toString());
-									}
+			if (urlAddress != null) {
+				final URL url = new URL(urlAddress.getAddress() + request.getPath());
+				final String protocol = url.getProtocol();
+				if (protocol.equals("http")) {
+					connection = (HttpURLConnection) url.openConnection();
+				} else if (protocol.equals("https")) {
+					trustCertificate();
+					final HttpsURLConnection sslConnection = (HttpsURLConnection) url.openConnection();
+					sslConnection.setHostnameVerifier(new UberHostnameVerifier());
+					connection = sslConnection;
+				}
+				if (connection != null) {
+					if (headerParams != null) {
+						for (String key : headerParams.keySet()) {
+							final Object param = headerParams.get(key);
+							if (param != null) {
+								if (param instanceof String) {
+									connection.addRequestProperty(key, (String) param);
+								} else {
+									connection.addRequestProperty(key, param.toString());
 								}
 							}
 						}
-						connection.setRequestMethod(request.getRequestMethod());
+					}
+					final String method = request.getRequestMethod();
+					final boolean requestHasBody = !(method.equals("DELETE") || method.equals("GET"));
+					if (requestHasBody) {
 						connection.setDoOutput(true);
-						connection.setConnectTimeout(CONNECTION_TIMEOUT);
-						connection.setReadTimeout(READ_TIMEOUT);
-						if (request.getContentType() != null) {
-							connection.setRequestProperty("Content-Type", request.getContentType());
-						}
-						if (request.getBody() != null) {
-							connection.setDoInput(true);
-							connection.setRequestProperty("Content-length", String.valueOf(request.getBody().length()));
-							final DataOutputStream output = new DataOutputStream(connection.getOutputStream());
-							output.writeBytes(request.getBody());
-						} else {
-							connection.connect();
-						}
+					}
+					connection.setRequestMethod(method);
+					connection.setConnectTimeout(CONNECTION_TIMEOUT);
+					connection.setReadTimeout(READ_TIMEOUT);
+					if (request.getContentType() != null) {
+						connection.setRequestProperty("Content-Type", request.getContentType());
+					}
+					if (requestHasBody && request.getBody() != null) {
+						connection.setDoInput(true);
+						connection.setRequestProperty("Content-length", String.valueOf(request.getBody().length()));
+						final DataOutputStream output = new DataOutputStream(connection.getOutputStream());
+						output.writeBytes(request.getBody());
+					} else {
+						connection.connect();
 					}
 				}
+			}
 			return connection;
 		}
 	}
@@ -192,11 +196,11 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 	}
 
 	/**
-        * This is the core task of the downloader. 
-        * 1. Pop the next download item 
-        * 2. Create the appropriate connection
-        * 3. Handle the response
-        * 4. Loop back until there aren't any items left
+	 * This is the core task of the downloader. 
+	 * 1. Pop the next download item 
+	 * 2. Create the appropriate connection
+	 * 3. Handle the response
+	 * 4. Loop back until there aren't any items left
 	 */
 	@Override
 	protected Object doInBackground(Object... params) {
@@ -271,7 +275,7 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 						onNetworkError(request);
 					} else {
 						// Don't know why it's here
-						Log.v("\n\nUber", "Uber Response: ERROR");
+						Log.v("Uber", "Uber ERROR. Response Code: " + request.getResponseCode());
 						onNetworkError(request);
 					}
 				}
@@ -332,7 +336,7 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 			}
 		}
 	}
-	
+
 	private void moveFirstItemToEnd() {
 		if (mRequestQueue != null && mRequestQueue.size() > 0) {
 			final Request request = mRequestQueue.get(0);
@@ -370,17 +374,21 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 		}
 	}
 
-	public static String toQueryString(HashMap<String, String> params) {
+	public static String toQueryString(HashMap<String, Object> params) {
 		final Object[] keys = params.keySet().toArray();
-		String paramsPath = "";
+		String paramsPath = "?";
 		final int size = keys.length;
 		for (int i = 0; i < size; ++i) {
 			final String key = (String) keys[i];
-			paramsPath += key + "=" + params.get(key);
+			Object value = params.get(key);
+			if (key instanceof String) {
+				paramsPath += key + "=" + value;
+			} else {
+				paramsPath += key + "=" + value.toString();
+			}
 			if (i < (size - 1)) {
 				paramsPath += "&";
 			}
-			i++;
 		}
 		return paramsPath;
 	}
