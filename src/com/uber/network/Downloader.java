@@ -104,8 +104,14 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 	}
 
 	public void addRequest(UrlAddress urlAddress, String path, String postRequest, String contentType, int type, int responseType, Object tag, int priority, String requestMethod) {
-		final Request request = new Request(urlAddress, path, requestMethod, postRequest, contentType, responseType, type, tag, priority);
+		final Request request = new Request(urlAddress, path, requestMethod, postRequest.getBytes(), contentType, responseType, type, tag, priority);
 		addDownload(request);
+	}
+
+	public void addRequest(Request request) {
+		if (request != null) {
+			addDownload(request);
+		}
 	}
 
 	private void addDownload(Request request) {
@@ -167,21 +173,18 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 						}
 					}
 					final String method = request.getRequestMethod();
-					final boolean requestHasBody = !(method.equals("DELETE") || method.equals("GET"));
-					if (requestHasBody) {
-						connection.setDoOutput(true);
-					}
 					connection.setRequestMethod(method);
 					connection.setConnectTimeout(CONNECTION_TIMEOUT);
 					connection.setReadTimeout(READ_TIMEOUT);
 					if (request.getContentType() != null) {
 						connection.setRequestProperty("Content-Type", request.getContentType());
 					}
-					if (requestHasBody && request.getBody() != null) {
+					if (!(method.equals("DELETE") || method.equals("GET")) && request.getBody() != null) {
+						connection.setDoOutput(true);
 						connection.setDoInput(true);
-						connection.setRequestProperty("Content-length", String.valueOf(request.getBody().length()));
+						connection.setRequestProperty("Content-length", String.valueOf(request.getBody().length));
 						final DataOutputStream output = new DataOutputStream(connection.getOutputStream());
-						output.writeBytes(request.getBody());
+						output.write(request.getBody());
 					} else {
 						connection.connect();
 					}
@@ -196,11 +199,9 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 	}
 
 	/**
-	 * This is the core task of the downloader. 
-	 * 1. Pop the next download item 
-	 * 2. Create the appropriate connection
-	 * 3. Handle the response
-	 * 4. Loop back until there aren't any items left
+	 * This is the core task of the downloader. 1. Pop the next download item 2.
+	 * Create the appropriate connection 3. Handle the response 4. Loop back
+	 * until there aren't any items left
 	 */
 	@Override
 	protected Object doInBackground(Object... params) {

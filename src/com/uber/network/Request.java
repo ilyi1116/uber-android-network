@@ -1,6 +1,5 @@
 package com.uber.network;
 
-import java.net.MalformedURLException;
 import java.net.URL;
 
 public class Request {
@@ -8,7 +7,7 @@ public class Request {
 	private UrlAddress urlAddress;
 	private String path;
 	private String requestMethod;
-	private String body;
+	private byte[] body;
 	private String contentType;
 	private int responseType;
 	private int type;
@@ -18,8 +17,8 @@ public class Request {
 	private int priority;
 	private boolean isFirstAttempt;
 	private Object tag;
-
-	public Request(UrlAddress urlAddress, String path, String requestMethod, String body, String contentType, int responseType, int type, Object tag, int priority) {
+	
+	public Request(UrlAddress urlAddress, String path, String requestMethod, byte[] body, String contentType, int responseType, int type, Object tag, int priority) {
 		this.urlAddress = urlAddress;
 		this.path = path;
 		this.requestMethod = requestMethod;
@@ -71,11 +70,11 @@ public class Request {
 		this.requestMethod = requestMethod;
 	}
 
-	public String getBody() {
+	public byte[] getBody() {
 		return body;
 	}
 
-	public void setBody(String body) {
+	public void setBody(byte[] body) {
 		this.body = body;
 	}
 
@@ -150,4 +149,5 @@ public class Request {
 	public void setTag(Object tag) {
 		this.tag = tag;
 	}
+	
 }
