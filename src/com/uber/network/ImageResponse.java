@@ -37,11 +37,14 @@ public class ImageResponse extends Response {
 	public ImageResponse(InputStream data) throws ResponseException {
         try {
         	BufferedInputStream bis = new BufferedInputStream(data); 
-    		mBitmap = BitmapFactory.decodeStream(bis); 
-    		bis.close();
+			mBitmap = BitmapFactory.decodeStream(bis);
+			bis.close();
 		} catch (IOException e) {
 			throw new ResponseException();
-		} 
+		} catch (OutOfMemoryError e) {
+			System.gc();
+			throw new ResponseException();
+		}
 	}
 
 	@Override

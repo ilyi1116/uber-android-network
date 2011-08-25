@@ -49,8 +49,8 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 	private static final int PRE_LOAD = 1;
 	private static final int ERROR = 2;
 
-	private final int CONNECTION_TIMEOUT = 5000;
-	private final int READ_TIMEOUT = 20000;
+	private final int CONNECTION_TIMEOUT = 8000;
+	private final int READ_TIMEOUT = 30000;
 
 	public final static int DOWNLOADER_NORMAL_PRIORITY = 0;
 	public final static int DOWNLOADER_RETRY_LOW_PRIORITY = 1;
