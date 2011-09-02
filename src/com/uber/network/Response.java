@@ -67,11 +67,7 @@ public class Response {
 			}
 			if (response != null) {
 				if (stringData == null) {
-					try {
-						stringData = streamToString(data);
-					} catch (IOException e) {
-						// Nothing to do
-					}
+					stringData = streamToString(data);
 				}
 				response.setRequest(request);
 				response.setStringData(stringData);
@@ -114,16 +110,20 @@ public class Response {
 		return null;
 	}
 
-	public static String streamToString(InputStream stream) throws IOException {
-		if (stream!=null && stream.markSupported() && stream.available() == 0) {
-			stream.reset();
-		}
+	public static String streamToString(InputStream stream) {
 		final char[] buffer = new char[0x10000];
 		final StringBuilder stringBuilder = new StringBuilder();
-		final InputStreamReader isr = new InputStreamReader(stream, "UTF-8");
-		int read;
-		while ((read = isr.read(buffer, 0, buffer.length)) != -1) {
-			stringBuilder.append(buffer, 0, read);
+		try {
+			if (stream != null && stream.markSupported() && stream.available() == 0) {
+				stream.reset();
+			}
+			final InputStreamReader isr = new InputStreamReader(stream, "UTF-8");
+			int read;
+			while ((read = isr.read(buffer, 0, buffer.length)) != -1) {
+				stringBuilder.append(buffer, 0, read);
+			}
+		} catch (IOException e) {
+			//Nothing to do here
 		}
 		return stringBuilder.toString();
 	}
