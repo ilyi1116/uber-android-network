@@ -34,6 +34,7 @@ import java.net.URL;
 import java.net.UnknownHostException;
 import java.util.HashMap;
 import java.util.Vector;
+import java.util.zip.GZIPInputStream;
 
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLContext;
@@ -254,11 +255,15 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 							Log.v("Uber", "Uber RESPONSE CODE: " + request.getResponseCode());
 						}
 						if (request.getResponseCode() >= 0) {
-							final InputStream responseStream;
+							InputStream responseStream;
 							if (request.getResponseCode() == 200) {
 								responseStream = connection.getInputStream();
 							} else {
 								responseStream = connection.getErrorStream();
+							}
+							final String contentEnconding = connection.getContentEncoding();
+							if (contentEnconding != null && contentEnconding.equalsIgnoreCase("gzip")) {
+								responseStream = new GZIPInputStream(responseStream);
 							}
 							onServerResponse(request, responseStream, connection.getLastModified());
 						} else {
