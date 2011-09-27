@@ -1,0 +1,3 @@
+[submodule "uber-android-utils"]
+	path = uber-android-utils
+	url = git@github.com:uber/uber-android-utils.git
