@@ -45,11 +45,11 @@ public interface OnDownloadListener {
 	 * the server, or could not parse the response.
 	 * @param type the type of the request
 	 */
-	public void onError(int type);
+	public void onError(int type, Request request, Exception exception);
 	
 	/**
 	 * Called if the download was cancelled.
 	 */
 	public void onCancel();
-
+	
 }

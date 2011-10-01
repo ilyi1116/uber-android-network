@@ -273,11 +273,11 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 						rotateAddress(request);
 					} else if (exception instanceof UnknownHostException || exception instanceof SocketTimeoutException) {
 						// Internet connection is down
-						onNetworkError(request);
+						onNetworkError(request, exception);
 					} else {
 						// Don't know why it's here
 						Log.v("Uber", "Uber ERROR. Response Code: " + request.getResponseCode());
-						onNetworkError(request);
+						onNetworkError(request, exception);
 					}
 				}
 			}
@@ -299,7 +299,7 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 		}
 	}
 
-	private void onNetworkError(Request request) {
+	private void onNetworkError(Request request, Exception exception) {
 		if (request.getPriority() == DOWNLOADER_RETRY_LOW_PRIORITY) {
 			moveFirstItemToEnd();
 		} else {
@@ -307,9 +307,13 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 			if (request.getAttemptCount() == 0) {
 				mIsConnected = false;
 				mRequestQueue.remove(0);
-				publishProgress(ERROR, request.getType());
+				publishProgress(ERROR, request, exception);
 			}
 		}
+	}
+	
+	private void onNetworkError(Request request) {
+		onNetworkError(request, null);
 	}
 
 	private void rotateAddress(Request request) {
@@ -318,7 +322,7 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 		if (request.getRotationCount() == 0) {
 			// Actually we've already tried all of our servers,
 			// so remove this download item and publish a little error.
-			publishProgress(ERROR, request.getType());
+			publishProgress(ERROR, request, new Exception("Rotate the server as much as we could"));
 			mRequestQueue.remove(0);
 		} else {
 			// We still have some servers to try, so let's use the next
@@ -354,7 +358,12 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 				if (retCode == PRE_LOAD) {
 					mDownloadListener.onPreLoad(((Integer) params[1]).intValue());
 				} else if (retCode == ERROR) {
-					mDownloadListener.onError(((Integer) params[1]).intValue());
+					Request request = (Request) params[1];
+					if (request != null) {
+						mDownloadListener.onError(request.getType(), request, (Exception) params[2]);
+					} else {
+						mDownloadListener.onError(-1, null, null);
+					}
 				} else if (retCode == DONE) {
 					final Response response = (Response) params[1];
 					if (response != null) {
