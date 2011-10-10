@@ -23,18 +23,20 @@
 
 package com.uber.network;
 
+import java.io.BufferedInputStream;
 import java.io.InputStream;
 
-import com.uber.utils.ExifUtil;
-
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 
 public class ImageResponse extends Response {
 	
 	private Bitmap mBitmap;
 	
 	public ImageResponse(InputStream data) throws ResponseException {
-		mBitmap = ExifUtil.fixImageOrientation(data);
+		//mBitmap = ExifUtil.fixImageOrientation(data);
+		//Disabled correcting image orientation.
+		mBitmap  = BitmapFactory.decodeStream(new BufferedInputStream(data));
 	}
 
 	@Override
