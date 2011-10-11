@@ -28,7 +28,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.ConnectException;
 import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
 import java.net.SocketTimeoutException;
 import java.net.URL;
 import java.net.UnknownHostException;
@@ -52,6 +51,7 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 
 	public final static int DOWNLOADER_NORMAL_PRIORITY = 0;
 	public final static int DOWNLOADER_RETRY_LOW_PRIORITY = 1;
+	public final static int DOWNLOADER_HIGH_PRIORITY = 2;
 
 	private boolean mIsInLoggingMode = false;
 	private boolean mIsConnected = true;
@@ -219,10 +219,7 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 			} else {
 				final Request request = mRequestQueue.get(0);
 				if (request.isFirstAttempt()) {
-					if (request.getProtocol().equals("https")) {
-						// WTF: Bug on android for https - Broken pipe
-						request.setAttemptCount(2);
-					}
+					resetRequestAttemptCount(request);
 					publishProgress(PRE_LOAD, request.getType());
 					request.setFirstAttempt(false);
 				}
@@ -285,6 +282,18 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 		return null;
 	}
 
+	private void resetRequestAttemptCount(Request request) {
+		if (request.getProtocol().equals("https")) {
+			request.setAttemptCount(2);
+		} else if (request.getProtocol().equals("http")) {
+			request.setAttemptCount(1);
+		}
+		
+		if (request.getPriority() == DOWNLOADER_HIGH_PRIORITY) {
+			request.setAttemptCount(request.getAttemptCount() * 2);
+		}
+	}
+
 	private void onServerResponse(Request request, InputStream responseStream, long lastModified) throws ResponseException {
 		mIsConnected = true;
 		if (request.getUrlAddress().shouldRotateWithCode(request.getResponseCode())) {
@@ -328,17 +337,8 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 			// We still have some servers to try, so let's use the next
 			// one and see if it works any better for our current download item.
 			// WTF: We need to send SSH requests twice because of some pipe errors.
-			try {
-				final URL url = new URL(request.getUrlAddress().getAddress());
-				final String protocol = url.getProtocol();
-				if (protocol.equals("http")) {
-					request.setAttemptCount(1);
-				} else if (protocol.equals("https")) {
-					request.setAttemptCount(2);
-				}
-			} catch (MalformedURLException e) {
-				request.setAttemptCount(1);
-			}
+			resetRequestAttemptCount(request);
+			
 		}
 	}
 
