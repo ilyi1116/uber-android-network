@@ -79,7 +79,11 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 	}
 
 	public void addDownload(UrlAddress urlAddress, int type, int responseType, int priority) {
-		final Request request = new Request(urlAddress, "", "GET", null, null, responseType, type, null, priority);
+		addDownload(urlAddress, type, responseType, priority, null);
+	}
+
+	public void addDownload(UrlAddress urlAddress, int type, int responseType, int priority, Object tag) {
+		final Request request = new Request(urlAddress, "", "GET", null, null, responseType, type, tag, priority);
 		addDownload(request);
 	}
 
@@ -288,7 +292,7 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 		} else if (request.getProtocol().equals("http")) {
 			request.setAttemptCount(1);
 		}
-		
+
 		if (request.getPriority() == DOWNLOADER_HIGH_PRIORITY) {
 			request.setAttemptCount(request.getAttemptCount() * 2);
 		}
@@ -300,7 +304,8 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 			// This error code means we should try another server.
 			rotateAddress(request);
 		} else {
-			// Everything looks good here. The response can still have an error code,
+			// Everything looks good here. The response can still have an error
+			// code,
 			// but it is handled by the server, so we consider it DONE.
 			final Response response = Response.create(request, responseStream, lastModified);
 			mRequestQueue.remove(0);
@@ -320,7 +325,7 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 			}
 		}
 	}
-	
+
 	private void onNetworkError(Request request) {
 		onNetworkError(request, null);
 	}
@@ -336,9 +341,10 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 		} else {
 			// We still have some servers to try, so let's use the next
 			// one and see if it works any better for our current download item.
-			// WTF: We need to send SSH requests twice because of some pipe errors.
+			// WTF: We need to send SSH requests twice because of some pipe
+			// errors.
 			resetRequestAttemptCount(request);
-			
+
 		}
 	}
 
