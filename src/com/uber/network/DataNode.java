@@ -39,6 +39,8 @@ public abstract class DataNode {
 	
 	public abstract int getInt(int defaultInt);
 	
+	public abstract Long getLong(Long defaultLong);
+	
 	public abstract double getDouble(double defaultDouble);
 	
 	public String getAttribute(String attributeName, String defaultValue) {
@@ -81,6 +83,14 @@ public abstract class DataNode {
 			return node.getString(defaultString);
 		}
 		return defaultString;
+	}
+	
+	public Long findLong(String name, Long defaultLong) {
+		final DataNode node = findNode(name);
+		if (node != null) {
+			return node.getLong(defaultLong);
+		}
+		return defaultLong;
 	}
 	
 }

@@ -19,7 +19,7 @@
     LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
     OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
     THE SOFTWARE.
-*/
+ */
 
 package com.uber.network;
 
@@ -31,15 +31,15 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 public class JsonNode extends DataNode {
-	
+
 	private String mName;
 	private Object mValue;
-	
+
 	public JsonNode(String name, Object value) {
 		mName = name;
 		mValue = value;
 	}
-	
+
 	@Override
 	public String getName() {
 		return mName;
@@ -57,7 +57,7 @@ public class JsonNode extends DataNode {
 		}
 		return dataNode;
 	}
-	
+
 	@Override
 	public ArrayList<DataNode> getChildren() {
 		final ArrayList<DataNode> dataNodes = new ArrayList<DataNode>();
@@ -92,7 +92,7 @@ public class JsonNode extends DataNode {
 		}
 		return dataNodes;
 	}
-	
+
 	@Override
 	public String getString(String defaultString) {
 		if (mValue != null) {
@@ -100,7 +100,7 @@ public class JsonNode extends DataNode {
 		}
 		return defaultString;
 	}
-	
+
 	@Override
 	public int getInt(int defaultInt) {
 		if (mValue instanceof Integer) {
@@ -108,13 +108,25 @@ public class JsonNode extends DataNode {
 		}
 		return defaultInt;
 	}
-	
+
 	@Override
 	public double getDouble(double defaultDouble) {
 		if (mValue instanceof Double) {
 			return ((Double) mValue).doubleValue();
+		} else if (mValue instanceof Integer) {
+			return ((Integer) mValue).doubleValue();
 		}
 		return defaultDouble;
+	}
+
+	@Override
+	public Long getLong(Long defaultLong) {
+		if (mValue instanceof Long) {
+			return ((Long) mValue).longValue();
+		} else if (mValue instanceof Integer) {
+			return ((Integer) mValue).longValue();
+		}
+		return defaultLong;
 	}
 
 }
