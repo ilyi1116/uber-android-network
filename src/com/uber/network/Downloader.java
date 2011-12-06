@@ -277,7 +277,6 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 						onNetworkError(request, exception);
 					} else {
 						// Don't know why it's here
-						Log.v("Uber", "Uber ERROR. Response Code: " + request.getResponseCode());
 						onNetworkError(request, exception);
 					}
 				}
@@ -287,14 +286,20 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 	}
 
 	private void resetRequestAttemptCount(Request request) {
-		if (request.getProtocol().equals("https")) {
-			request.setAttemptCount(2);
-		} else if (request.getProtocol().equals("http")) {
-			request.setAttemptCount(1);
-		}
+		if (request.getPriority() == DOWNLOADER_RETRY_LOW_PRIORITY) {
+			// Setting limit to low priority retry.
+			request.setAttemptCount(20);
+		} else {
+			if (request.getProtocol().equals("https")) {
+				request.setAttemptCount(2);
+			} else if (request.getProtocol().equals("http")) {
+				request.setAttemptCount(1);
+			}
 
-		if (request.getPriority() == DOWNLOADER_HIGH_PRIORITY) {
-			request.setAttemptCount(request.getAttemptCount() * 2);
+			// Set the count to be twice bigger than the normal request.
+			if (request.getPriority() == DOWNLOADER_HIGH_PRIORITY) {
+				request.setAttemptCount(request.getAttemptCount() * 2);
+			}
 		}
 	}
 
@@ -314,15 +319,11 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 	}
 
 	private void onNetworkError(Request request, Exception exception) {
-		if (request.getPriority() == DOWNLOADER_RETRY_LOW_PRIORITY) {
-			moveFirstItemToEnd();
-		} else {
-			request.setAttemptCount(request.getAttemptCount() - 1);
-			if (request.getAttemptCount() == 0) {
-				mIsConnected = false;
-				mRequestQueue.remove(0);
-				publishProgress(ERROR, request, exception);
-			}
+		request.setAttemptCount(request.getAttemptCount() - 1);
+		if (request.getAttemptCount() == 0) {
+			mIsConnected = false;
+			mRequestQueue.remove(0);
+			publishProgress(ERROR, request, exception);
 		}
 	}
 
