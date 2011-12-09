@@ -26,6 +26,7 @@ package com.uber.network;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
 
 import android.graphics.Bitmap;
 
@@ -41,7 +42,7 @@ public class Response {
 	private int mResponseCode = -1;
 	private Request mRequest;
 
-	public static Response create(Request request, InputStream data, long lastModified) throws ResponseException {
+	public static Response create(Request request, InputStream data, HttpURLConnection connection) throws ResponseException {
 		Response response = null;
 		data.mark(100000);
 		if (data != null) {
@@ -61,7 +62,7 @@ public class Response {
 					throw new ResponseException("Could not convert stream to string for JSON response.");
 				}
 			} else if (responseType == IMAGE_TYPE) {
-				response = new ImageResponse(data);
+				response = new ImageResponse(connection, request);
 			} else {
 				response = new Response();
 			}
@@ -71,7 +72,7 @@ public class Response {
 				}
 				response.setRequest(request);
 				response.setStringData(stringData);
-				response.setLastModified(lastModified);
+				response.setLastModified(connection.getLastModified());
 				response.setResponseCode(request.getResponseCode());
 			}
 		}

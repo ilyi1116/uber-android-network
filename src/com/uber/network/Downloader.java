@@ -261,7 +261,7 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 							if (contentEnconding != null && contentEnconding.equalsIgnoreCase("gzip")) {
 								responseStream = new GZIPInputStream(responseStream);
 							}
-							onServerResponse(request, responseStream, connection.getLastModified());
+							onServerResponse(request, responseStream, connection);
 						} else {
 							onNetworkError(request);
 						}
@@ -296,14 +296,13 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 				request.setAttemptCount(1);
 			}
 
-			// Set the count to be twice bigger than the normal request.
 			if (request.getPriority() == DOWNLOADER_HIGH_PRIORITY) {
-				request.setAttemptCount(request.getAttemptCount() * 2);
+				request.setAttemptCount(request.getAttemptCount() * 3);
 			}
 		}
 	}
 
-	private void onServerResponse(Request request, InputStream responseStream, long lastModified) throws ResponseException {
+	private void onServerResponse(Request request, InputStream responseStream, HttpURLConnection connection) throws ResponseException {
 		mIsConnected = true;
 		if (request.getUrlAddress().shouldRotateWithCode(request.getResponseCode())) {
 			// This error code means we should try another server.
@@ -312,7 +311,7 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 			// Everything looks good here. The response can still have an error
 			// code,
 			// but it is handled by the server, so we consider it DONE.
-			final Response response = Response.create(request, responseStream, lastModified);
+			final Response response = Response.create(request, responseStream, connection);
 			mRequestQueue.remove(0);
 			publishProgress(DONE, response);
 		}
@@ -346,14 +345,6 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 			// errors.
 			resetRequestAttemptCount(request);
 
-		}
-	}
-
-	private void moveFirstItemToEnd() {
-		if (mRequestQueue != null && mRequestQueue.size() > 0) {
-			final Request request = mRequestQueue.get(0);
-			mRequestQueue.remove(0);
-			mRequestQueue.add(request);
 		}
 	}
 
