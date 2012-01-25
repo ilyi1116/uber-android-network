@@ -100,6 +100,17 @@ public class XmlNode extends DataNode {
 	}
 	
 	@Override
+	public Long getLong(Long defaultLong) {
+		if (mNode.hasChildNodes()) {
+			final Long longValue = NumberUtils.parseLong(mNode.getFirstChild().getNodeValue());
+			if (longValue != null) {
+				return longValue;
+			}
+		}
+		return defaultLong;
+	}
+	
+	@Override
 	public String getAttribute(String attributeName, String defaultValue) {
 		if (mNode.hasAttributes()) {
 			final Node attributeNode = mNode.getAttributes().getNamedItem(attributeName);
