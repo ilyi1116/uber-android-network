@@ -147,12 +147,20 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 	private HttpURLConnection connect(Request request) throws IOException {
 		if (mConnection != null) {
 			return mConnection;
+			
 		} else {
+			
 			HttpURLConnection connection = null;
+			
+			// Get url
 			final UrlAddress urlAddress = request.getUrlAddress();
 			if (urlAddress != null) {
+				
+				// Get protocol
 				final URL url = new URL(urlAddress.getAddress() + request.getPath());
 				final String protocol = url.getProtocol();
+				
+				// Handle both protocols
 				if (protocol.equals("http")) {
 					connection = (HttpURLConnection) url.openConnection();
 				} else if (protocol.equals("https")) {
@@ -161,7 +169,10 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 					sslConnection.setHostnameVerifier(new UberHostnameVerifier());
 					connection = sslConnection;
 				}
+				
 				if (connection != null) {
+					
+					// Add custom headers
 					if (headerParams != null) {
 						for (String key : headerParams.keySet()) {
 							final Object param = headerParams.get(key);
@@ -174,15 +185,24 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 							}
 						}
 					}
+					
+					// Set method
 					final String method = request.getRequestMethod();
 					connection.setRequestMethod(method);
+					
+					// Set content type
 					if (request.getContentType() != null) {
 						connection.setRequestProperty("Content-Type", request.getContentType());
 					}
+					
+					// Set content length
+					int contentLength = request.getBody() == null ? 0 : request.getBody().length;
+					connection.setRequestProperty("Content-length", String.valueOf(contentLength));
+					
+					// Handle if has body or not
 					if (!(method.equals("DELETE") || method.equals("GET")) && request.getBody() != null) {
 						connection.setDoOutput(true);
 						connection.setDoInput(true);
-						connection.setRequestProperty("Content-length", String.valueOf(request.getBody().length));
 						final DataOutputStream output = new DataOutputStream(connection.getOutputStream());
 						output.write(request.getBody());
 					} else {
