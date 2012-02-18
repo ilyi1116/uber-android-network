@@ -105,6 +105,8 @@ public class JsonNode extends DataNode {
 	public int getInt(int defaultInt) {
 		if (mValue instanceof Integer) {
 			return ((Integer) mValue).intValue();
+		} else if (mValue instanceof String) {
+			return Integer.parseInt((String) mValue);
 		}
 		return defaultInt;
 	}
@@ -115,6 +117,8 @@ public class JsonNode extends DataNode {
 			return ((Double) mValue).doubleValue();
 		} else if (mValue instanceof Integer) {
 			return ((Integer) mValue).doubleValue();
+		} else if (mValue instanceof String) {
+			return Double.parseDouble((String) mValue);
 		}
 		return defaultDouble;
 	}
@@ -125,6 +129,8 @@ public class JsonNode extends DataNode {
 			return ((Long) mValue).longValue();
 		} else if (mValue instanceof Integer) {
 			return ((Integer) mValue).longValue();
+		} else if (mValue instanceof String) {
+			return Long.parseLong((String) mValue);
 		}
 		return defaultLong;
 	}
