@@ -7,6 +7,7 @@ public class Request {
 	private UrlAddress urlAddress;
 	private String path;
 	private String requestMethod;
+	private String bodyString;
 	private byte[] body;
 	private String contentType;
 	private int responseType;
@@ -18,11 +19,19 @@ public class Request {
 	private boolean isFirstAttempt;
 	private Object tag;
 	
-	public Request(UrlAddress urlAddress, String path, String requestMethod, byte[] body, String contentType, int responseType, int type, Object tag, int priority) {
+	public Request(UrlAddress urlAddress) {
+		this.path = "";
+		this.requestMethod = "GET";
+		this.responseType = Response.JSON_TYPE;
+		this.type = -1;
+		this.priority = Downloader.DOWNLOADER_NORMAL_PRIORITY;
+	}
+	
+	public Request(UrlAddress urlAddress, String path, String requestMethod, String bodyString, String contentType, int responseType, int type, Object tag, int priority) {
 		this.urlAddress = urlAddress;
 		this.path = path;
 		this.requestMethod = requestMethod;
-		this.body = body;
+		this.bodyString = bodyString;
 		this.contentType = contentType;
 		this.responseType = responseType;
 		this.type = type;
@@ -71,11 +80,22 @@ public class Request {
 	}
 
 	public byte[] getBody() {
-		return body;
+		if (this.body == null && this.bodyString != null) {
+			this.body = this.bodyString.getBytes();
+		}
+		return this.body;
 	}
 
 	public void setBody(byte[] body) {
 		this.body = body;
+	}
+	
+	public String getBodyString() {
+		return this.bodyString;
+	}
+	
+	public void setBodyString(String bodyString) {
+		this.bodyString = bodyString;
 	}
 
 	public String getContentType() {

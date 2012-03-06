@@ -106,7 +106,7 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 	}
 
 	public void addRequest(UrlAddress urlAddress, String path, String postRequest, String contentType, int type, int responseType, Object tag, int priority, String requestMethod) {
-		final Request request = new Request(urlAddress, path, requestMethod, postRequest.getBytes(), contentType, responseType, type, tag, priority);
+		final Request request = new Request(urlAddress, path, requestMethod, postRequest, contentType, responseType, type, tag, priority);
 		addDownload(request);
 	}
 
@@ -247,29 +247,38 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 					publishProgress(PRE_LOAD, request.getType());
 					request.setFirstAttempt(false);
 				}
+				
+				// Logs
 				long timeInMs = 0;
 				if (mIsInLoggingMode) {
-					Log.v("Uber", "**************** Uber REQUEST ****************");
+					Log.v("Uber", "-----------> Uber REQUEST");
 					Log.v("Uber", "Uber METHOD: " + request.getRequestMethod());
 					Log.v("Uber", "Uber REQUEST URL: " + request.getUrlAddress().getAddress() + request.getPath());
-					Log.v("Uber", "Uber REQUEST BODY: " + request.getBody());
+					Log.v("Uber", "Uber REQUEST BODY: " + request.getBodyString());
 					timeInMs = System.currentTimeMillis();
 				}
+				
 				try {
 					mIsProgressUpdated = false;
 					final HttpURLConnection connection = connect(request);
+					
+					// Logs
 					if (mIsInLoggingMode) {
 						final double timing = (double) (System.currentTimeMillis() - timeInMs) / 1000;
-						Log.v("Uber", "***************** Uber RESPONSE ******************");
+						Log.v("Uber", "<---------- Uber RESPONSE");
 						Log.v("Uber", "Uber REQUEST URL: " + request.getUrlAddress().getAddress() + request.getPath());
 						Log.v("Uber", "Uber TIMING: " + timing);
 						Log.v("Uber", "Uber REQUEST ATTEMPT: " + request.getAttemptCount());
 					}
+					
 					if (connection != null) {
 						request.setResponseCode(connection.getResponseCode());
+						
+						// Logs
 						if (mIsInLoggingMode) {
 							Log.v("Uber", "Uber RESPONSE CODE: " + request.getResponseCode());
 						}
+						
 						if (request.getResponseCode() >= 0) {
 							InputStream responseStream;
 							if (request.getResponseCode() == 200) {
