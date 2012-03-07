@@ -244,7 +244,7 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 				final Request request = mRequestQueue.get(0);
 				if (request.isFirstAttempt()) {
 					resetRequestAttemptCount(request);
-					publishProgress(PRE_LOAD, request.getType());
+					publishProgress(PRE_LOAD, request);
 					request.setFirstAttempt(false);
 				}
 				
@@ -342,7 +342,7 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 			// but it is handled by the server, so we consider it DONE.
 			final Response response = Response.create(request, responseStream, connection);
 			mRequestQueue.remove(0);
-			publishProgress(DONE, response);
+			publishProgress(DONE, request, response);
 		}
 	}
 
@@ -376,28 +376,54 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 
 		}
 	}
+	
+	private OnDownloadListener getListenerFromRequest(Request request) {
+		OnDownloadListener listener = request.getListener();
+		if (listener == null) {
+			listener = this.mDownloadListener;
+		}
+		return listener;
+	}
 
 	@Override
 	protected void onProgressUpdate(Object... params) {
 		if (params.length >= 2) {
 			final int retCode = ((Integer) params[0]).intValue();
-			if (mDownloadListener != null) {
-				if (retCode == PRE_LOAD) {
-					mDownloadListener.onPreLoad(((Integer) params[1]).intValue());
-				} else if (retCode == ERROR) {
-					Request request = (Request) params[1];
+			if (retCode == PRE_LOAD) {
+				
+				// Handle pre load
+				final Request request = (Request) params[1];
+				final OnDownloadListener listener = getListenerFromRequest(request);
+				if (listener != null) {
+					listener.onPreLoad(request.getType());
+				}
+				
+			} else if (retCode == ERROR) {
+				
+				// Handle error
+				final Request request = (Request) params[1];
+				final OnDownloadListener listener = getListenerFromRequest(request);
+				if (listener != null) {
 					if (request != null) {
-						mDownloadListener.onError(request.getType(), request, (Exception) params[2]);
+						listener.onError(request.getType(), request, (Exception) params[2]);
 					} else {
-						mDownloadListener.onError(-1, null, null);
+						listener.onError(-1, null, null);
 					}
-				} else if (retCode == DONE) {
-					final Response response = (Response) params[1];
+				}
+				
+			} else if (retCode == DONE) {
+				
+				// Handle success
+				final Request request = (Request) params[1];
+				final OnDownloadListener listener = getListenerFromRequest(request);
+				if (listener != null) {
+					final Response response = (Response) params[2];
 					if (response != null) {
-						mDownloadListener.onLoad(response);
+						listener.onLoad(response);
 					}
 				}
 			}
+
 			if (retCode != PRE_LOAD) {
 				mIsProgressUpdated = true;
 			}

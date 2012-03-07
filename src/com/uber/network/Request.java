@@ -18,8 +18,10 @@ public class Request {
 	private int priority;
 	private boolean isFirstAttempt;
 	private Object tag;
+	private OnDownloadListener listener;
 	
 	public Request(UrlAddress urlAddress) {
+		this.urlAddress = urlAddress;
 		this.path = "";
 		this.requestMethod = "GET";
 		this.responseType = Response.JSON_TYPE;
@@ -168,6 +170,14 @@ public class Request {
 
 	public void setTag(Object tag) {
 		this.tag = tag;
+	}
+	
+	public OnDownloadListener getListener() {
+		return this.listener;
+	}
+
+	public void setListener(OnDownloadListener listener) {
+		this.listener = listener;
 	}
 	
 }
