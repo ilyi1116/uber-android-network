@@ -348,7 +348,7 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 
 	private void onNetworkError(Request request, Exception exception) {
 		request.setAttemptCount(request.getAttemptCount() - 1);
-		if (request.getAttemptCount() == 0) {
+		if (request.getAttemptCount() <= 0) {
 			mIsConnected = false;
 			mRequestQueue.remove(0);
 			publishProgress(ERROR, request, exception);
@@ -373,7 +373,6 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 			// WTF: We need to send SSH requests twice because of some pipe
 			// errors.
 			resetRequestAttemptCount(request);
-
 		}
 	}
 	
