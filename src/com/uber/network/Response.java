@@ -29,6 +29,7 @@ import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 
 import android.graphics.Bitmap;
+import android.util.Log;
 
 public class Response {
 
@@ -57,6 +58,7 @@ public class Response {
 			} else if (responseType == JSON_TYPE) {
 				try {
 					stringData = streamToString(data);
+					
 					response = new JsonResponse(stringData);
 				} catch (IOException e) {
 					throw new ResponseException("Could not convert stream to string for JSON response.");

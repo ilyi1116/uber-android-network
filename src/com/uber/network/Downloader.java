@@ -43,6 +43,8 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.util.Log;
 
+import com.uber.utils.UBLogs;
+
 public class Downloader extends AsyncTask<Object, Object, Object> {
 
 	private static final int DONE = 0;
@@ -53,7 +55,6 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 	public final static int DOWNLOADER_RETRY_LOW_PRIORITY = 1;
 	public final static int DOWNLOADER_HIGH_PRIORITY = 2;
 
-	private boolean mIsInLoggingMode = false;
 	private boolean mIsConnected = true;
 	private boolean mIsProgressUpdated = false;
 	private OnDownloadListener mDownloadListener = null;
@@ -68,10 +69,6 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 	public Downloader(HttpURLConnection connection) {
 		super();
 		mConnection = connection;
-	}
-
-	public void setLoggingMode(boolean loggingMode) {
-		mIsInLoggingMode = loggingMode;
 	}
 
 	public void setOnDownloadListener(OnDownloadListener listener) {
@@ -151,7 +148,7 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 		} else {
 			
 			HttpURLConnection connection = null;
-			
+		
 			// Get url
 			final UrlAddress urlAddress = request.getUrlAddress();
 			if (urlAddress != null) {
@@ -249,54 +246,35 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 				}
 				
 				// Logs
-				long timeInMs = 0;
-				if (mIsInLoggingMode) {
-					Log.v("Uber", "-----------> Uber REQUEST");
-					Log.v("Uber", "Uber METHOD: " + request.getRequestMethod());
-					Log.v("Uber", "Uber REQUEST URL: " + request.getUrlAddress().getAddress() + request.getPath());
-					Log.v("Uber", "Uber REQUEST BODY: " + request.getBodyString());
-					timeInMs = System.currentTimeMillis();
-				}
+				long timeInMs = System.currentTimeMillis();
+				
+				UBLogs.logRequest(request);
 				
 				try {
 					mIsProgressUpdated = false;
 					final HttpURLConnection connection = connect(request);
 					
-					// Logs
-					if (mIsInLoggingMode) {
-						final double timing = (double) (System.currentTimeMillis() - timeInMs) / 1000;
-						Log.v("Uber", "<---------- Uber RESPONSE");
-						Log.v("Uber", "Uber REQUEST URL: " + request.getUrlAddress().getAddress() + request.getPath());
-						Log.v("Uber", "Uber TIMING: " + timing);
-						Log.v("Uber", "Uber REQUEST ATTEMPT: " + request.getAttemptCount());
+					if (connection == null) {
+						onNetworkError(request);
+						return null;
+					}
+					request.setResponseCode(connection.getResponseCode());
+					
+					if (request.getResponseCode() >= 0) {
+						InputStream responseStream;
+						if (request.getResponseCode() == 200) {
+							responseStream = connection.getInputStream();
+						} else {
+							responseStream = connection.getErrorStream();
+						}
+						final String contentEnconding = connection.getContentEncoding();
+						if (contentEnconding != null && contentEnconding.equalsIgnoreCase("gzip")) {
+							responseStream = new GZIPInputStream(responseStream);
+						}
+						onServerResponse(request, responseStream, connection, timeInMs);
 					}
 					
-					if (connection != null) {
-						request.setResponseCode(connection.getResponseCode());
-						
-						// Logs
-						if (mIsInLoggingMode) {
-							Log.v("Uber", "Uber RESPONSE CODE: " + request.getResponseCode());
-						}
-						
-						if (request.getResponseCode() >= 0) {
-							InputStream responseStream;
-							if (request.getResponseCode() == 200) {
-								responseStream = connection.getInputStream();
-							} else {
-								responseStream = connection.getErrorStream();
-							}
-							final String contentEnconding = connection.getContentEncoding();
-							if (contentEnconding != null && contentEnconding.equalsIgnoreCase("gzip")) {
-								responseStream = new GZIPInputStream(responseStream);
-							}
-							onServerResponse(request, responseStream, connection);
-						} else {
-							onNetworkError(request);
-						}
-					} else {
-						onNetworkError(request);
-					}
+
 				} catch (Exception exception) {
 					if (exception instanceof ConnectException) {
 						// Server is down.
@@ -331,9 +309,11 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 		}
 	}
 
-	private void onServerResponse(Request request, InputStream responseStream, HttpURLConnection connection) throws ResponseException {
+	private void onServerResponse(Request request, InputStream responseStream, HttpURLConnection connection, long timeInMs) throws ResponseException {
 		mIsConnected = true;
 		if (request.getUrlAddress().shouldRotateWithCode(request.getResponseCode())) {
+			UBLogs.logResponse(request, connection, null, timeInMs);
+			
 			// This error code means we should try another server.
 			rotateAddress(request);
 		} else {
@@ -341,6 +321,7 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 			// code,
 			// but it is handled by the server, so we consider it DONE.
 			final Response response = Response.create(request, responseStream, connection);
+			UBLogs.logResponse(request, connection, response, timeInMs);
 			mRequestQueue.remove(0);
 			publishProgress(DONE, request, response);
 		}
