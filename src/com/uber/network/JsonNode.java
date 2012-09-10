@@ -147,4 +147,13 @@ public class JsonNode extends DataNode {
 		return defaultLong;
 	}
 
+	
+	@Override
+	public Boolean getBoolean(Boolean defaultValue) {
+		if (mValue instanceof Boolean) {
+			return (Boolean) mValue;
+		}
+		
+		return defaultValue;
+	}
 }

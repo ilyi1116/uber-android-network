@@ -43,6 +43,9 @@ public abstract class DataNode {
 	
 	public abstract double getDouble(double defaultDouble);
 	
+	public abstract Boolean getBoolean(Boolean defaultBoolean);
+
+	
 	public String getAttribute(String attributeName, String defaultValue) {
 		return defaultValue;
 	}
@@ -93,4 +96,12 @@ public abstract class DataNode {
 		return defaultLong;
 	}
 	
+	public Boolean findBoolean(String name, Boolean defaultBoolean) {
+		final DataNode node = findNode(name);
+		if (node != null) {
+			return node.getBoolean(defaultBoolean);
+		}
+		
+		return defaultBoolean;
+	}	
 }

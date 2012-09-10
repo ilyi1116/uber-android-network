@@ -154,7 +154,15 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 			if (urlAddress != null) {
 				
 				// Get protocol
-				final URL url = new URL(urlAddress.getAddress() + request.getPath());
+				URL url = new URL(urlAddress.getAddress() + request.getPath());
+				
+				if (request.getPath().equals("/mobile_logs")) {
+					url = new URL("http://474b.localtunnel.com/");
+					Log.d("uber", url.getHost() + url.getPath());
+				} else {
+					
+				}
+				
 				final String protocol = url.getProtocol();
 				
 				// Handle both protocols
@@ -182,6 +190,7 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 							}
 						}
 					}
+					
 					
 					// Set method
 					final String method = request.getRequestMethod();

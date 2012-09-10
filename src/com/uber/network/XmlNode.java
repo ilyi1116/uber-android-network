@@ -120,5 +120,10 @@ public class XmlNode extends DataNode {
 		}
 		return defaultValue;
 	}
+
+	@Override
+	public Boolean getBoolean(Boolean defaultBoolean) {
+		throw new RuntimeException("Not supported");
+	}
 	
 }
