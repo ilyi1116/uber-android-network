@@ -28,6 +28,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.ConnectException;
 import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
 import java.net.Proxy;
 import java.net.SocketTimeoutException;
 import java.net.URL;
@@ -57,7 +58,7 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 	public final static int DOWNLOADER_RETRY_LOW_PRIORITY = 1;
 	public final static int DOWNLOADER_HIGH_PRIORITY = 2;
 
-	public final static boolean REPORT_NETWORK_PROBLEMS = false;
+	public final static boolean REPORT_NETWORK_PROBLEMS = true;
 	
 	private boolean mIsConnected = true;
 	private boolean mIsProgressUpdated = false;
@@ -341,7 +342,7 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 	private void onNetworkError(Request request, Exception exception) {
 		request.setAttemptCount(request.getAttemptCount() - 1);
 
-		if (REPORT_NETWORK_PROBLEMS) {
+		if (REPORT_NETWORK_PROBLEMS && ! (exception instanceof MalformedURLException)) {
 			ErrorReporter.getInstance().handleException(exception);
 		}
 		

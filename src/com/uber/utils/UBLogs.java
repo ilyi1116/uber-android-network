@@ -84,20 +84,27 @@ public class UBLogs {
 			Log.d("uber", logWithDate);
 		}
 	}
-	
+		
 	public static synchronized String getLogs() {
 		final StringBuffer buffer = new StringBuffer();
-		for (int i = sLogs.size() -1; i >= 0; i--) {
-			
+		
+		int maxLength = 0;
+		while (maxLength < sLogs.size()) {
+			int i = 0;
 			try {
-				buffer.insert(0, "\n\n");
-				buffer.insert(0, sLogs.get(i));
-			} catch(OutOfMemoryError error) {
-				// attempt to send at least last logs
+
+				for (i = sLogs.size() -1; i >= maxLength; i--) {
+	
+						buffer.insert(0, "\n\n");
+						buffer.insert(0, sLogs.get(i));
+				}
 				return buffer.toString();
+			} catch (OutOfMemoryError error) {
+				maxLength = i +1;
+				buffer.setLength(0);
 			}
 		}
-		return buffer.toString();
+		return "";
 	}
 	
 	
