@@ -57,6 +57,8 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 	public final static int DOWNLOADER_RETRY_LOW_PRIORITY = 1;
 	public final static int DOWNLOADER_HIGH_PRIORITY = 2;
 
+	public final static boolean REPORT_NETWORK_PROBLEMS = false;
+	
 	private boolean mIsConnected = true;
 	private boolean mIsProgressUpdated = false;
 	private OnDownloadListener mDownloadListener = null;
@@ -271,7 +273,9 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 						if (request.getResponseCode() == 200) {
 							responseStream = connection.getInputStream();
 						} else {
-							ErrorReporter.getInstance().handleSilentException(new RuntimeException("Response code " + request.getResponseCode()));
+							if (REPORT_NETWORK_PROBLEMS) {
+								ErrorReporter.getInstance().handleSilentException(new RuntimeException("Response code " + request.getResponseCode()));
+							}
 							responseStream = connection.getErrorStream();
 						}
 						final String contentEnconding = connection.getContentEncoding();
@@ -337,8 +341,10 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 	private void onNetworkError(Request request, Exception exception) {
 		request.setAttemptCount(request.getAttemptCount() - 1);
 
-		ErrorReporter.getInstance().handleException(exception);
-
+		if (REPORT_NETWORK_PROBLEMS) {
+			ErrorReporter.getInstance().handleException(exception);
+		}
+		
 		if (request.getAttemptCount() <= 0) {
 			mIsConnected = false;
 			mRequestQueue.remove(0);
