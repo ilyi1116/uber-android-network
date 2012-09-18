@@ -28,6 +28,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.ConnectException;
 import java.net.HttpURLConnection;
+import java.net.Proxy;
 import java.net.SocketTimeoutException;
 import java.net.URL;
 import java.net.UnknownHostException;
@@ -39,9 +40,10 @@ import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
 
+import org.acra.ErrorReporter;
+
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.util.Log;
 
 import com.uber.utils.UBLogs;
 
@@ -155,14 +157,7 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 				
 				// Get protocol
 				URL url = new URL(urlAddress.getAddress() + request.getPath());
-				
-				if (request.getPath().equals("/mobile_logs")) {
-					url = new URL("http://474b.localtunnel.com/");
-					Log.d("uber", url.getHost() + url.getPath());
-				} else {
-					
-				}
-				
+								
 				final String protocol = url.getProtocol();
 				
 				// Handle both protocols
@@ -170,7 +165,7 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 					connection = (HttpURLConnection) url.openConnection();
 				} else if (protocol.equals("https")) {
 					trustCertificate();
-					final HttpsURLConnection sslConnection = (HttpsURLConnection) url.openConnection();
+					final HttpsURLConnection sslConnection = (HttpsURLConnection) url.openConnection(Proxy.NO_PROXY);
 					sslConnection.setHostnameVerifier(new UberHostnameVerifier());
 					connection = sslConnection;
 				}
@@ -260,6 +255,7 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 				UBLogs.logRequest(request);
 				
 				try {
+					
 					mIsProgressUpdated = false;
 					final HttpURLConnection connection = connect(request);
 					
@@ -267,6 +263,7 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 						onNetworkError(request);
 						return null;
 					}
+					
 					request.setResponseCode(connection.getResponseCode());
 					
 					if (request.getResponseCode() >= 0) {
@@ -274,6 +271,7 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 						if (request.getResponseCode() == 200) {
 							responseStream = connection.getInputStream();
 						} else {
+							ErrorReporter.getInstance().handleSilentException(new RuntimeException("Response code " + request.getResponseCode()));
 							responseStream = connection.getErrorStream();
 						}
 						final String contentEnconding = connection.getContentEncoding();
@@ -338,6 +336,9 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 
 	private void onNetworkError(Request request, Exception exception) {
 		request.setAttemptCount(request.getAttemptCount() - 1);
+
+		ErrorReporter.getInstance().handleException(exception);
+
 		if (request.getAttemptCount() <= 0) {
 			mIsConnected = false;
 			mRequestQueue.remove(0);
