@@ -31,7 +31,7 @@ public class UBLogs {
 		log += "URL: " + url + "\n";
 		log += request.getBodyString() + "\n";
 
-		add(log);
+		addLine(log);
 	}
 	
 	public static void logResponse(Request request, HttpURLConnection connection, Response response, long timeInMs) {
@@ -69,11 +69,11 @@ public class UBLogs {
 		} catch (IOException e) {
 			log += "Exception while parsing: " + e.getMessage() + "\n";
 		} finally {
-			add(log);
+			addLine(log);
 		}
 	}
 
-	public static synchronized void add(String log) {
+	public static synchronized void addLine(String log) {
 		final String logWithDate = UBUtils.getUTCTimestamp("yyyy-MM-dd HH:mm:ss") + ": " + log;
 		if (sLogs.size() >= MAX_LOGS) {
 			sLogs.remove(0);

@@ -41,10 +41,11 @@ import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
 
-import org.acra.ErrorReporter;
+import org.acra.ACRA;
 
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.util.Log;
 
 import com.uber.utils.UBLogs;
 
@@ -186,7 +187,7 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 									connection.addRequestProperty(key, param.toString());
 								}
 							}
-						}
+						}	
 					}
 					
 					
@@ -255,11 +256,16 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 				// Logs
 				long timeInMs = System.currentTimeMillis();
 				
-				UBLogs.logRequest(request);
+				if (!request.getPath().equals("/mobile_logs")) {
+					UBLogs.logRequest(request);
+				} else {
+					UBLogs.addLine("MOBILE LOGS \n");
+				}
 				
-				try {
+				try {	
 					
 					mIsProgressUpdated = false;
+
 					final HttpURLConnection connection = connect(request);
 					
 					if (connection == null) {
@@ -274,8 +280,11 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 						if (request.getResponseCode() == 200) {
 							responseStream = connection.getInputStream();
 						} else {
+							final Response response = Response.create(request, connection.getInputStream(), connection);
+							UBLogs.logResponse(request, connection, response, timeInMs);
+
 							if (REPORT_NETWORK_PROBLEMS) {
-								ErrorReporter.getInstance().handleSilentException(new RuntimeException("Response code " + request.getResponseCode()));
+								ACRA.getErrorReporter().handleException(new RuntimeException("Response code " + request.getResponseCode()));
 							}
 							responseStream = connection.getErrorStream();
 						}
@@ -341,11 +350,17 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 
 	private void onNetworkError(Request request, Exception exception) {
 		request.setAttemptCount(request.getAttemptCount() - 1);
-
-		if (REPORT_NETWORK_PROBLEMS && ! (exception instanceof MalformedURLException)) {
-			ErrorReporter.getInstance().handleException(exception);
-		}
 		
+		if (REPORT_NETWORK_PROBLEMS) {
+			if (!(exception instanceof MalformedURLException) &&
+				!(exception instanceof UnknownHostException)) {
+				ACRA.getErrorReporter().handleException(exception);
+			} else 
+			if (!(exception instanceof MalformedURLException)) {
+				UBLogs.addLine("Network Error: " + exception);
+			}
+		}
+				
 		if (request.getAttemptCount() <= 0) {
 			mIsConnected = false;
 			mRequestQueue.remove(0);
