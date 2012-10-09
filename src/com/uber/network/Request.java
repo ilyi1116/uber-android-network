@@ -27,6 +27,7 @@ public class Request {
 		this.responseType = Response.JSON_TYPE;
 		this.type = -1;
 		this.priority = Downloader.DOWNLOADER_NORMAL_PRIORITY;
+		init();
 	}
 	
 	public Request(UrlAddress urlAddress, String path, String requestMethod, String bodyString, String contentType, int responseType, int type, Object tag, int priority) {
