@@ -279,10 +279,8 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 						if (request.getResponseCode() == 200) {
 							responseStream = connection.getInputStream();
 						} else {
-							final Response response = Response.create(request, connection.getErrorStream(), connection);
-							UBLogs.logResponse(request, connection, response, timeInMs);
-
-							if (REPORT_NETWORK_PROBLEMS) {
+							// server returns 406 if client sign-up parameters are incorrect.
+							if (REPORT_NETWORK_PROBLEMS && !(request.getPath().equals("/clients") && request.getResponseCode() == 406)) {
 								ACRA.getErrorReporter().handleException(new RuntimeException("Response code " + request.getResponseCode()));
 							}
 							responseStream = connection.getErrorStream();
