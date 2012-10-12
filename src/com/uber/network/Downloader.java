@@ -45,7 +45,6 @@ import org.acra.ACRA;
 
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.util.Log;
 
 import com.uber.utils.UBLogs;
 
@@ -169,7 +168,7 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 					connection = (HttpURLConnection) url.openConnection();
 				} else if (protocol.equals("https")) {
 					trustCertificate();
-					final HttpsURLConnection sslConnection = (HttpsURLConnection) url.openConnection(Proxy.NO_PROXY);
+					final HttpsURLConnection sslConnection = (HttpsURLConnection) url.openConnection();
 					sslConnection.setHostnameVerifier(new UberHostnameVerifier());
 					connection = sslConnection;
 				}
@@ -280,7 +279,7 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 						if (request.getResponseCode() == 200) {
 							responseStream = connection.getInputStream();
 						} else {
-							final Response response = Response.create(request, connection.getInputStream(), connection);
+							final Response response = Response.create(request, connection.getErrorStream(), connection);
 							UBLogs.logResponse(request, connection, response, timeInMs);
 
 							if (REPORT_NETWORK_PROBLEMS) {
