@@ -168,7 +168,7 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 					connection = (HttpURLConnection) url.openConnection();
 				} else if (protocol.equals("https")) {
 					trustCertificate();
-					final HttpsURLConnection sslConnection = (HttpsURLConnection) url.openConnection();
+					final HttpsURLConnection sslConnection = (HttpsURLConnection) url.openConnection(Proxy.NO_PROXY);
 					sslConnection.setHostnameVerifier(new UberHostnameVerifier());
 					connection = sslConnection;
 				}
