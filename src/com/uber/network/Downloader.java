@@ -277,23 +277,31 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 					
 					request.setResponseCode(connection.getResponseCode());
 					
-					if (request.getResponseCode() >= 0) {
-						InputStream responseStream;
-						if (request.getResponseCode() == 200) {
-							responseStream = connection.getInputStream();
-						} else {
-							// server returns 406 if client sign-up parameters are incorrect.
-							if (REPORT_NETWORK_PROBLEMS && !(request.getPath().equals("/clients") && request.getResponseCode() == 406)) {
-								ACRA.getErrorReporter().handleException(new RuntimeException("Response code " + request.getResponseCode()));
-							}
-							responseStream = connection.getErrorStream();
-						}
-						final String contentEnconding = connection.getContentEncoding();
-						if (contentEnconding != null && contentEnconding.equalsIgnoreCase("gzip")) {
-							responseStream = new GZIPInputStream(responseStream);
-						}
-						onServerResponse(request, responseStream, connection, timeInMs);
+					if (request.getResponseCode() < 0) {
+						// DON'T ASK! Legacy...
+						continue;
 					}
+					
+					InputStream responseStream;
+					if (request.getResponseCode() == 200) {
+						responseStream = connection.getInputStream();
+					} else
+					if (request.getResponseCode() == 504) {
+						publishProgress(ERROR, request, null);
+						continue;
+					} else {
+						// server returns 406 if client sign-up parameters are incorrect.
+						if (REPORT_NETWORK_PROBLEMS && !(request.getPath().equals("/clients") && request.getResponseCode() == 406)) {
+							ACRA.getErrorReporter().handleException(new RuntimeException("Response code " + request.getResponseCode()));
+						}
+						responseStream = connection.getErrorStream();
+					}
+					
+					final String contentEnconding = connection.getContentEncoding();
+					if (contentEnconding != null && contentEnconding.equalsIgnoreCase("gzip")) {
+						responseStream = new GZIPInputStream(responseStream);
+					}
+					onServerResponse(request, responseStream, connection, timeInMs);
 					
 
 				} catch (Exception exception) {
@@ -422,7 +430,8 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 				final OnDownloadListener listener = getListenerFromRequest(request);
 				if (listener != null) {
 					if (request != null) {
-						listener.onError(request.getType(), request, (Exception) params[2]);
+						final Exception exception = (Exception) params[2];
+						listener.onError(request.getType(), request, exception);
 					} else {
 						listener.onError(-1, null, null);
 					}
