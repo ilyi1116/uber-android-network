@@ -46,6 +46,7 @@ import org.acra.ACRA;
 import android.os.AsyncTask;
 import android.os.Bundle;
 
+import com.uber.utils.StreamUtils;
 import com.uber.utils.UBLogs;
 
 public class Downloader extends AsyncTask<Object, Object, Object> {
@@ -262,11 +263,12 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 					UBLogs.addLine("MOBILE LOGS \n");
 				}
 				
+				HttpURLConnection connection = null;
 				try {	
 					
 					mIsProgressUpdated = false;
 
-					final HttpURLConnection connection = connect(request);
+					connection = connect(request);
 					
 					if (connection == null) {
 						onNetworkError(request);
@@ -300,10 +302,10 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 						rotateAddress(request);
 					} else if (exception instanceof UnknownHostException || exception instanceof SocketTimeoutException) {
 						// Internet connection is down
-						onNetworkError(request, exception);
+						onNetworkError(request, exception, connection.getErrorStream());
 					} else {
 						// Don't know why it's here
-						onNetworkError(request, exception);
+						onNetworkError(request, exception, connection.getErrorStream());
 					}
 				}
 			}
@@ -346,8 +348,12 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 		}
 	}
 
-	private void onNetworkError(Request request, Exception exception) {
+	private void onNetworkError(Request request, Exception exception, InputStream stream) {
 		request.setAttemptCount(request.getAttemptCount() - 1);
+		
+		if (stream != null) {
+			UBLogs.addLine("Error stream: " + StreamUtils.streamToString(stream));
+		}
 		
 		if (REPORT_NETWORK_PROBLEMS) {
 			if (!(exception instanceof MalformedURLException ||
@@ -368,7 +374,7 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 	}
 
 	private void onNetworkError(Request request) {
-		onNetworkError(request, null);
+		onNetworkError(request, null, null);
 	}
 
 	private void rotateAddress(Request request) {

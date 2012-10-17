@@ -28,6 +28,8 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 
+import com.uber.utils.StreamUtils;
+
 import android.graphics.Bitmap;
 import android.util.Log;
 
@@ -57,7 +59,7 @@ public class Response {
 				}
 			} else if (responseType == JSON_TYPE) {
 				try {
-					stringData = streamToString(data);
+					stringData = StreamUtils.streamToString(data);
 					
 					response = new JsonResponse(stringData);
 				} catch (IOException e) {
@@ -70,7 +72,7 @@ public class Response {
 			}
 			if (response != null) {
 				if (stringData == null) {
-					stringData = streamToString(data);
+					stringData = StreamUtils.streamToString(data);
 				}
 				response.setRequest(request);
 				response.setStringData(stringData);
@@ -111,24 +113,6 @@ public class Response {
 
 	public Bitmap getBitmap() {
 		return null;
-	}
-
-	public static String streamToString(InputStream stream) {
-		final char[] buffer = new char[0x10000];
-		final StringBuilder stringBuilder = new StringBuilder();
-		try {
-			if (stream != null && stream.markSupported() && stream.available() == 0) {
-				stream.reset();
-			}
-			final InputStreamReader isr = new InputStreamReader(stream, "UTF-8");
-			int read;
-			while ((read = isr.read(buffer, 0, buffer.length)) != -1) {
-				stringBuilder.append(buffer, 0, read);
-			}
-		} catch (IOException e) {
-			//Nothing to do here
-		}
-		return stringBuilder.toString();
 	}
 
 	public void setResponseCode(int responseCode) {
