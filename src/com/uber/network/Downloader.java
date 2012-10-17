@@ -135,6 +135,7 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 			HttpsURLConnection.setDefaultSSLSocketFactory(sslContext.getSocketFactory());
 		} catch (Exception e) {
 			// Pretty fucked here
+			ACRA.getErrorReporter().handleSilentException(e);
 		}
 	}
 
