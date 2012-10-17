@@ -277,22 +277,24 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 					
 					request.setResponseCode(connection.getResponseCode());
 					
-					if (request.getResponseCode() < 0) {
+					InputStream responseStream;
+					
+					final int responseCode = request.getResponseCode();
+					if (responseCode < 0) {
 						// DON'T ASK! Legacy...
 						continue;
-					}
-					
-					InputStream responseStream;
-					if (request.getResponseCode() == 200) {
+					} else
+					if (responseCode == 200) {
 						responseStream = connection.getInputStream();
 					} else
-					if (request.getResponseCode() == 504) {
+					if (responseCode > 500) {
+						UBLogs.addLine("Response code: " + responseCode);
 						publishProgress(ERROR, request, null);
 						continue;
 					} else {
 						// server returns 406 if client sign-up parameters are incorrect.
-						if (REPORT_NETWORK_PROBLEMS && !(request.getPath().equals("/clients") && request.getResponseCode() == 406)) {
-							ACRA.getErrorReporter().handleException(new RuntimeException("Response code " + request.getResponseCode()));
+						if (REPORT_NETWORK_PROBLEMS && !(request.getPath().equals("/clients") && responseCode == 406)) {
+							ACRA.getErrorReporter().handleException(new RuntimeException("Response code " + responseCode));
 						}
 						responseStream = connection.getErrorStream();
 					}
