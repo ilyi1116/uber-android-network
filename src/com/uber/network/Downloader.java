@@ -350,8 +350,9 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 		request.setAttemptCount(request.getAttemptCount() - 1);
 		
 		if (REPORT_NETWORK_PROBLEMS) {
-			if (!(exception instanceof MalformedURLException) &&
-				!(exception instanceof UnknownHostException)) {
+			if (!(exception instanceof MalformedURLException ||
+				  exception instanceof UnknownHostException  ||
+				  exception instanceof SocketTimeoutException)) {
 				ACRA.getErrorReporter().handleException(exception);
 			} else 
 			if (!(exception instanceof MalformedURLException)) {
