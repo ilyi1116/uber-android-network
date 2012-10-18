@@ -46,41 +46,45 @@ public class Response {
 	private Request mRequest;
 
 	public static Response create(Request request, InputStream data, HttpURLConnection connection) throws ResponseException {
+		if (data == null) {
+			return null;
+		}
+		
 		Response response = null;
 		data.mark(100000);
-		if (data != null) {
-			String stringData = null;
-			int responseType = request.getResponseType();
-			if (responseType == XML_TYPE) {
-				try {
-					response = new XmlResponse(data);
-				} catch (ResponseException e) {
-					throw new ResponseException("Could not parse Xml.");
-				}
-			} else if (responseType == JSON_TYPE) {
-				try {
-					stringData = StreamUtils.streamToString(data);
-					
-					response = new JsonResponse(stringData);
-				} catch (IOException e) {
-					throw new ResponseException("Could not convert stream to string for JSON response.");
-				}
-			} else if (responseType == IMAGE_TYPE) {
-				response = new ImageResponse(data, request);
-			} else {
-				response = new Response();
+		
+		String stringData = null;
+		int responseType = request.getResponseType();
+		if (responseType == XML_TYPE) {
+			try {
+				response = new XmlResponse(data);
+			} catch (ResponseException e) {
+				throw new ResponseException("Could not parse Xml.");
 			}
-			if (response != null && !(response instanceof ImageResponse)) {
-				if (stringData == null) {
-					stringData = StreamUtils.streamToString(data);
-				}
-				response.setStringData(stringData);
-			}
+		} else if (responseType == JSON_TYPE) {
+			try {
+				stringData = StreamUtils.streamToString(data);
 				
-			response.setRequest(request);
-			response.setLastModified(connection.getLastModified());
-			response.setResponseCode(request.getResponseCode());
+				response = new JsonResponse(stringData, connection.getResponseCode());
+			} catch (IOException e) {
+				throw new ResponseException("Could not convert stream to string for JSON response.");
+			}
+		} else if (responseType == IMAGE_TYPE) {
+			response = new ImageResponse(data, request);
+		} else {
+			response = new Response();
 		}
+		if (response != null && !(response instanceof ImageResponse)) {
+			if (stringData == null) {
+				stringData = StreamUtils.streamToString(data);
+			}
+			response.setStringData(stringData);
+		}
+			
+		response.setRequest(request);
+		response.setLastModified(connection.getLastModified());
+		response.setResponseCode(request.getResponseCode());
+
 		return response;
 	}
 

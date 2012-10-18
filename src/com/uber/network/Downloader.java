@@ -449,6 +449,8 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 					final Response response = (Response) params[2];
 					if (response != null) {
 						listener.onLoad(response);
+					} else {
+						listener.onError(request.getType(), request, null);
 					}
 				}
 			}

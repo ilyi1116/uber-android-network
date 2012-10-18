@@ -32,7 +32,7 @@ public class JsonResponse extends Response {
 	
 	private DataNode mDataNode;
 	
-	public JsonResponse(String json) throws ResponseException, IOException {
+	public JsonResponse(String json, int responseCode) throws ResponseException, IOException {
 		try {
 			JSONObject jsonObject = null;
 			if (json != null && json.length() > 0) {
@@ -40,7 +40,7 @@ public class JsonResponse extends Response {
 			}
 			mDataNode = new JsonNode("", jsonObject);
 		} catch (JSONException e) {
-			throw new ResponseException("Could not create root JSON object:\n" + json);
+			throw new ResponseException(String.format("Response code: %d, could not create root JSON object:\n %s", responseCode, json));
 		}
 	}
 	
