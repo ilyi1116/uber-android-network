@@ -57,7 +57,10 @@ public class UBLogs {
 			
 			final int responseType = request.getResponseType();
 			
-			if (Response.IMAGE_TYPE == responseType || response == null) {				
+			if (Response.IMAGE_TYPE == responseType) {
+				log += "IMAGE RESPONSE \n";
+				return;
+			} else if (response == null) {
 				return;
 			}
 			

@@ -43,26 +43,23 @@ public class ImageResponse extends Response {
 	private static int MAX_HEIGHT = 100;
 	private static int MAX_WIDTH = 100;
 
-	public ImageResponse(HttpURLConnection connection, Request request) throws ResponseException {
+	public ImageResponse(InputStream data, Request request) throws ResponseException {
 		try {
 
-			final Options options = getBitmapFactoryOptions(connection, request);
+			final Options options = getBitmapFactoryOptions(request);
 
-			mBitmap = createBitmap(options, request);
+			mBitmap = createBitmap(options, data, request);
 
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
 	}
 
-	private Options getBitmapFactoryOptions(HttpURLConnection connection, Request request) throws IOException, ResponseException {
+	private Options getBitmapFactoryOptions(Request request) throws IOException, ResponseException {
 
 		// Create options to download only the meta data of the image.
 		final Options options = new BitmapFactory.Options();
 		options.inJustDecodeBounds = true;
-
-		// Download meta data.
-		InputStream is = connection.getInputStream();
 
 		// Make sure the picture size information is valid 
 		if (options.outHeight * options.outWidth >= MAX_HEIGHT * MAX_WIDTH * 2) {
@@ -81,9 +78,6 @@ public class ImageResponse extends Response {
 		options.inJustDecodeBounds = false;
 
 		// Input stream is consumed so it's closed an connection set to null.
-		is.close();
-		connection = null;
-
 		if (options.outWidth == -1 || options.outHeight == -1) {
 			throw new ResponseException("Bitmap meta data has invalid output width and height");
 		}
@@ -91,48 +85,7 @@ public class ImageResponse extends Response {
 		return options;
 	}
 
-	private Bitmap createBitmap(BitmapFactory.Options options, Request request) throws IOException, ResponseException {
-
-		HttpURLConnection connection = null;
-
-		final UrlAddress urlAddress = request.getUrlAddress();
-
-		if (urlAddress != null) {
-
-			final URL url = new URL(urlAddress.getAddress() + request.getPath());
-
-			final String protocol = url.getProtocol();
-			if (protocol.equals("http")) {
-
-				connection = (HttpURLConnection) url.openConnection();
-			} else if (protocol.equals("https")) {
-
-				try {
-					final SSLContext sslContext = SSLContext.getInstance("TLS");
-					sslContext.init(null, new TrustManager[] { new UberTrustManager() }, new java.security.SecureRandom());
-					HttpsURLConnection.setDefaultSSLSocketFactory(sslContext.getSocketFactory());
-				} catch (Exception e) {
-					e.printStackTrace();
-				}
-
-				final HttpsURLConnection sslConnection = (HttpsURLConnection) url.openConnection();
-				sslConnection.setHostnameVerifier(new UberHostnameVerifier());
-
-				connection = sslConnection;
-			}
-			if (connection != null) {
-
-				if (request.getContentType() != null) {
-					connection.setRequestProperty("Content-Type", request.getContentType());
-				}
-
-				connection.connect();
-			}
-		}
-
-		InputStream is = connection.getInputStream();
-
-		is = connection.getInputStream();
+	private Bitmap createBitmap(BitmapFactory.Options options, InputStream is, Request request) throws IOException, ResponseException {
 		Bitmap bitmap = BitmapFactory.decodeStream(is, null, options);
 
 		is.close();

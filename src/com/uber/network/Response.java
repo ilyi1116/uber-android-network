@@ -66,19 +66,20 @@ public class Response {
 					throw new ResponseException("Could not convert stream to string for JSON response.");
 				}
 			} else if (responseType == IMAGE_TYPE) {
-				response = new ImageResponse(connection, request);
+				response = new ImageResponse(data, request);
 			} else {
 				response = new Response();
 			}
-			if (response != null) {
+			if (response != null && !(response instanceof ImageResponse)) {
 				if (stringData == null) {
 					stringData = StreamUtils.streamToString(data);
 				}
-				response.setRequest(request);
 				response.setStringData(stringData);
-				response.setLastModified(connection.getLastModified());
-				response.setResponseCode(request.getResponseCode());
 			}
+				
+			response.setRequest(request);
+			response.setLastModified(connection.getLastModified());
+			response.setResponseCode(request.getResponseCode());
 		}
 		return response;
 	}

@@ -307,15 +307,16 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 					
 
 				} catch (Exception exception) {
+					final InputStream errorStream = connection != null ? connection.getErrorStream() : null;
 					if (exception instanceof ConnectException) {
 						// Server is down.
 						rotateAddress(request);
 					} else if (exception instanceof UnknownHostException || exception instanceof SocketTimeoutException) {
 						// Internet connection is down
-						onNetworkError(request, exception, connection.getErrorStream());
+						onNetworkError(request, exception, errorStream);
 					} else {
 						// Don't know why it's here
-						onNetworkError(request, exception, connection.getErrorStream());
+						onNetworkError(request, exception, errorStream);
 					}
 				}
 			}
@@ -345,7 +346,7 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 		if (request.getUrlAddress().shouldRotateWithCode(request.getResponseCode())) {
 			UBLogs.logResponse(request, connection, null, timeInMs);
 			
-			// This error code means we should try another server.
+			// This error code means we should try another server.	
 			rotateAddress(request);
 		} else {
 			// Everything looks good here. The response can still have an error
