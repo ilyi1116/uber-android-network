@@ -352,7 +352,7 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 			// Everything looks good here. The response can still have an error
 			// code,
 			// but it is handled by the server, so we consider it DONE.
-			final Response response = Response.create(request, null, connection);
+			final Response response = Response.create(request, responseStream, connection);
 			UBLogs.logResponse(request, connection, response, timeInMs);
 			mRequestQueue.remove(0);
 			publishProgress(DONE, request, response);
