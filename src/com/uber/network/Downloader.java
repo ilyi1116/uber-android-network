@@ -292,10 +292,6 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 						publishProgress(ERROR, request, null);
 						continue;
 					} else {
-						// server returns 406 if client sign-up parameters are incorrect.
-						if (REPORT_NETWORK_PROBLEMS && !(request.getPath().equals("/clients") && responseCode == 406)) {
-							ACRA.getErrorReporter().handleException(new RuntimeException("Response code " + responseCode));
-						}
 						responseStream = connection.getErrorStream();
 					}
 					
@@ -303,6 +299,10 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 					if (contentEnconding != null && contentEnconding.equalsIgnoreCase("gzip")) {
 						responseStream = new GZIPInputStream(responseStream);
 					}
+					
+					if (REPORT_NETWORK_PROBLEMS && responseStream == null) {
+						ACRA.getErrorReporter().handleException(new RuntimeException("Empty response stream. Code: " + responseCode));
+					}					
 					onServerResponse(request, responseStream, connection, timeInMs);
 					
 
@@ -352,7 +352,7 @@ public class Downloader extends AsyncTask<Object, Object, Object> {
 			// Everything looks good here. The response can still have an error
 			// code,
 			// but it is handled by the server, so we consider it DONE.
-			final Response response = Response.create(request, responseStream, connection);
+			final Response response = Response.create(request, null, connection);
 			UBLogs.logResponse(request, connection, response, timeInMs);
 			mRequestQueue.remove(0);
 			publishProgress(DONE, request, response);
